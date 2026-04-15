@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct LeftSideBar: View {
+    @StateObject private var vm = LeftSideBarVM()
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Button("Ouvrir +") { }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .buttonStyle(.bordered)
+            Button("Ouvrir +") {
+                vm.open()
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .buttonStyle(.bordered)
             Spacer()
         }
         .frame(maxWidth: .infinity)
