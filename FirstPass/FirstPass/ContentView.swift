@@ -11,10 +11,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             // Sidebar gauche
-            List {
-                Text("Liste")
-                Text("Liste")
-            }
+            LeftSideBar()
                 .navigationSplitViewColumnWidth(
                             min: 200, ideal: 250, max: 300)
         } detail: {
