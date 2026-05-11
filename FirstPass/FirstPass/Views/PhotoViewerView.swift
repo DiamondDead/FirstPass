@@ -6,6 +6,52 @@
 //
 
 import SwiftUI
+import AppKit
+
+// MARK: - Keyboard Shortcut Handler
+
+struct KeyboardShortcutHandler: NSViewRepresentable {
+    let leftArrowAction: () -> Void
+    let rightArrowAction: () -> Void
+    let escapeAction: () -> Void
+    
+    func makeNSView(context: Context) -> KeyHandlingView {
+        let view = KeyHandlingView()
+        view.leftArrowAction = leftArrowAction
+        view.rightArrowAction = rightArrowAction
+        view.escapeAction = escapeAction
+        // Make the view first responder to receive key events
+        DispatchQueue.main.async {
+            view.window?.makeFirstResponder(view)
+        }
+        return view
+    }
+    
+    func updateNSView(_ nsView: KeyHandlingView, context: Context) {}
+    
+    class KeyHandlingView: NSView {
+        var leftArrowAction: (() -> Void)?
+        var rightArrowAction: (() -> Void)?
+        var escapeAction: (() -> Void)?
+        
+        override var acceptsFirstResponder: Bool {
+            return true
+        }
+        
+        override func keyDown(with event: NSEvent) {
+            switch event.keyCode {
+            case 123: // Left arrow
+                leftArrowAction?()
+            case 124: // Right arrow
+                rightArrowAction?()
+            case 53: // Escape
+                escapeAction?()
+            default:
+                super.keyDown(with: event)
+            }
+        }
+    }
+}
 
 /// View for displaying a single photo in full size with navigation
 struct PhotoViewerView: View {
@@ -119,6 +165,13 @@ struct PhotoViewerView: View {
             // Auto-disable dark sidebar when viewer disappears
             viewModel.isDarkSidebar = false
         }
+        .background(
+            KeyboardShortcutHandler(
+                leftArrowAction: { viewModel.previousPhoto() },
+                rightArrowAction: { viewModel.nextPhoto() },
+                escapeAction: { viewModel.deselectPhoto() }
+            )
+        )
     }
     
     // MARK: - Helper Methods
