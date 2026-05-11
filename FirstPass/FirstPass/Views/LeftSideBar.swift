@@ -34,7 +34,24 @@ struct LeftSideBar: View {
             Divider()
             
             // Folder tree
-            if let rootFolder = viewModel.rootFolder {
+            if let errorMessage = viewModel.errorMessage {
+                // Error state
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.red)
+                    Text("Erreur")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.red)
+                    Text(errorMessage)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            } else if let rootFolder = viewModel.rootFolder {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         FolderTreeView(folder: rootFolder, viewModel: viewModel)

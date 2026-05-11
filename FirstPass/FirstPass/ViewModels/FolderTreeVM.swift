@@ -17,6 +17,7 @@ final class FolderTreeVM {
     
     var rootFolder: FolderItem?
     var selectedFolder: FolderItem?
+    var errorMessage: String?
     private var securityScopedBookmark: Data?
     
     // MARK: - Supported image extensions
@@ -59,6 +60,9 @@ final class FolderTreeVM {
     func loadFolder(at url: URL) {
         debugPrint("[FolderTreeVM] Loading folder at: \(url.path)")
         
+        // Clear any previous error
+        errorMessage = nil
+        
         // Request security-scoped bookmark access
         let accessing = url.startAccessingSecurityScopedResource()
         defer {
@@ -74,10 +78,20 @@ final class FolderTreeVM {
         // Scan folder structure
         scanFolder(url, into: rootFolder)
         
+        // Calculate total photos including subfolders
+        let totalPhotos = calculateTotalPhotos(in: rootFolder)
+        
+        // Validate that folder contains photos
+        if totalPhotos == 0 {
+            errorMessage = "Ce dossier ne contient aucune photo. Veuillez sélectionner un dossier avec des fichiers RAW, JPEG ou TIFF."
+            debugPrint("[FolderTreeVM] Error: No photos found in folder")
+            return
+        }
+        
         self.rootFolder = rootFolder
         self.selectedFolder = rootFolder
         
-        debugPrint("[FolderTreeVM] Folder loaded with \(rootFolder.subfolders.count) subfolders and \(rootFolder.photoCount) photos")
+        debugPrint("[FolderTreeVM] Folder loaded with \(rootFolder.subfolders.count) subfolders and \(totalPhotos) total photos")
     }
     
     /// Toggles the expanded state of a folder
@@ -93,6 +107,15 @@ final class FolderTreeVM {
     }
     
     // MARK: - Private Methods
+    
+    /// Calculates total photos in a folder and all its subfolders
+    private func calculateTotalPhotos(in folder: FolderItem) -> Int {
+        var total = folder.photoCount
+        for subfolder in folder.subfolders {
+            total += calculateTotalPhotos(in: subfolder)
+        }
+        return total
+    }
     
     /// Recursively scans a folder to find subfolders and count photos
     private func scanFolder(_ url: URL, into folderItem: FolderItem) {
