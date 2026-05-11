@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(FolderTreeVM.self) private var folderTreeVM
+    @Environment(PhotoGridVM.self) private var photoGridVM
     
     var body: some View {
         NavigationSplitView {
@@ -17,15 +18,21 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(
                             min: 200, ideal: 250, max: 300)
         } detail: {
-            // Contenu principal
-            Text("Bonjour")
+            // Contenu principal - Photo grid
+            PhotoGridView(viewModel: photoGridVM)
                 .frame(minWidth: 700)
+        }
+        .onAppear {
+            // Pass PhotoGridVM to FolderTreeVM for photo loading on folder selection
+            folderTreeVM.photoGridVM = photoGridVM
         }
     }
 }
 
 #Preview {
-    let vm = FolderTreeVM()
+    let folderVM = FolderTreeVM()
+    let photoVM = PhotoGridVM()
     return ContentView()
-        .environment(vm)
+        .environment(folderVM)
+        .environment(photoVM)
 }

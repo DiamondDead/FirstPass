@@ -19,6 +19,7 @@ final class FolderTreeVM {
     var selectedFolder: FolderItem?
     var errorMessage: String?
     private var securityScopedBookmark: Data?
+    weak var photoGridVM: PhotoGridVM?
     
     // MARK: - Supported image extensions
     
@@ -29,7 +30,8 @@ final class FolderTreeVM {
     
     // MARK: - Initialization
     
-    init() {
+    init(photoGridVM: PhotoGridVM? = nil) {
+        self.photoGridVM = photoGridVM
         debugPrint("[FolderTreeVM] Initialized")
     }
     
@@ -104,6 +106,9 @@ final class FolderTreeVM {
     func selectFolder(_ folder: FolderItem) {
         selectedFolder = folder
         debugPrint("[FolderTreeVM] Selected folder: \(folder.name) with \(folder.photoCount) photos")
+        
+        // Load photos in the grid view
+        photoGridVM?.loadPhotos(from: folder.url)
     }
     
     // MARK: - Private Methods

@@ -9,13 +9,15 @@ import SwiftUI
 
 @main
 struct FirstPassApp: App {
-    // Shared state for folder tree management
+    // Shared state for folder tree and photo grid management
     @State private var folderTreeVM = FolderTreeVM()
+    @State private var photoGridVM = PhotoGridVM()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(folderTreeVM)
+                .environment(photoGridVM)
                 .frame(minWidth: 1280, minHeight: 720)
         }
         .windowResizability(WindowResizability.automatic)
