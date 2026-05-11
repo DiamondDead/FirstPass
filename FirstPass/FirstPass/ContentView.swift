@@ -8,10 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(FolderTreeVM.self) private var folderTreeVM
+    
     var body: some View {
         NavigationSplitView {
             // Sidebar gauche
-            LeftSideBar()
+            LeftSideBar(viewModel: folderTreeVM)
                 .navigationSplitViewColumnWidth(
                             min: 200, ideal: 250, max: 300)
         } detail: {
@@ -23,5 +25,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    let vm = FolderTreeVM()
+    return ContentView()
+        .environment(vm)
 }

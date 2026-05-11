@@ -8,23 +8,63 @@
 import SwiftUI
 
 struct LeftSideBar: View {
-    @StateObject private var vm = LeftSideBarVM()
+    let viewModel: FolderTreeVM
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Button("Ouvrir +") {
-                vm.open()
+        VStack(alignment: .leading, spacing: 0) {
+            // Header with open button
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: {
+                    viewModel.openFolder()
+                }) {
+                    HStack {
+                        Image(systemName: "folder.badge.plus")
+                        Text("Ouvrir un dossier")
+                    }
+                    .font(.system(size: 13))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
             }
-            .frame(maxWidth: .infinity)
             .padding()
-            .buttonStyle(.bordered)
-            Spacer()
+            
+            Divider()
+            
+            // Folder tree
+            if let rootFolder = viewModel.rootFolder {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        FolderTreeView(folder: rootFolder, viewModel: viewModel)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                }
+            } else {
+                // Empty state
+                VStack(spacing: 12) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.secondary)
+                    Text("Aucun dossier ouvert")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                    Text("Cliquez sur \"Ouvrir un dossier\" pour commencer")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding()
     }
 }
 
 #Preview {
-    LeftSideBar()
+    let vm = FolderTreeVM()
+    return LeftSideBar(viewModel: vm)
+        .frame(width: 250)
 }
