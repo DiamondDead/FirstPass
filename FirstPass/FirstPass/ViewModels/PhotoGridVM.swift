@@ -30,7 +30,6 @@ final class PhotoGridVM {
     var selectedPhoto: PhotoItem?
     var isLoading: Bool = false
     var errorMessage: String?
-    var isDarkSidebar: Bool = false
     
     // MARK: - Supported image extensions
     

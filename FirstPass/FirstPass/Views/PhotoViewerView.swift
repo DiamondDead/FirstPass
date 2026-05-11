@@ -157,13 +157,9 @@ struct PhotoViewerView: View {
         }
         .onAppear {
             debugPrint("[PhotoViewerView] Appeared")
-            // Auto-enable dark sidebar when viewer appears
-            viewModel.isDarkSidebar = true
         }
         .onDisappear {
             debugPrint("[PhotoViewerView] Disappeared")
-            // Auto-disable dark sidebar when viewer disappears
-            viewModel.isDarkSidebar = false
         }
         .background(
             KeyboardShortcutHandler(
