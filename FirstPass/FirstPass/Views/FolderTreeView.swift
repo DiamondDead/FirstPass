@@ -23,15 +23,23 @@ struct FolderTreeView: View {
         VStack(alignment: .leading, spacing: 2) {
             // Folder row
             Button(action: {
-                viewModel.toggleExpansion(folder)
+                if !folder.subfolders.isEmpty {
+                    viewModel.toggleExpansion(folder)
+                }
                 viewModel.selectFolder(folder)
             }) {
                 HStack(spacing: 6) {
-                    // Chevron
-                    Image(systemName: folder.isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 12)
+                    // Chevron (only show if there are subfolders)
+                    if !folder.subfolders.isEmpty {
+                        Image(systemName: folder.isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 12)
+                    } else {
+                        // Spacer to maintain alignment
+                        Spacer()
+                            .frame(width: 12)
+                    }
                     
                     // Folder icon
                     Image(systemName: "folder.fill")
