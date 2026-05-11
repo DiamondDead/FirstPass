@@ -14,7 +14,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             // Sidebar gauche
-            LeftSideBar(viewModel: folderTreeVM)
+            LeftSideBar(viewModel: folderTreeVM, isDarkSidebar: photoGridVM.isDarkSidebar)
                 .navigationSplitViewColumnWidth(
                             min: 200, ideal: 250, max: 300)
         } detail: {

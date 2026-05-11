@@ -27,8 +27,10 @@ final class PhotoGridVM {
     // MARK: - State
     
     var photos: [PhotoItem] = []
+    var selectedPhoto: PhotoItem?
     var isLoading: Bool = false
     var errorMessage: String?
+    var isDarkSidebar: Bool = false
     
     // MARK: - Supported image extensions
     
@@ -52,6 +54,7 @@ final class PhotoGridVM {
         isLoading = true
         errorMessage = nil
         photos = []
+        selectedPhoto = nil
         
         // Request security-scoped bookmark access
         let accessing = folderURL.startAccessingSecurityScopedResource()
@@ -93,6 +96,40 @@ final class PhotoGridVM {
             errorMessage = "Erreur lors du chargement des photos: \(error.localizedDescription)"
             isLoading = false
         }
+    }
+    
+    /// Selects a photo for viewing
+    func selectPhoto(_ photo: PhotoItem) {
+        selectedPhoto = photo
+        debugPrint("[PhotoGridVM] Selected photo: \(photo.fileName)")
+    }
+    
+    /// Deselects the current photo
+    func deselectPhoto() {
+        selectedPhoto = nil
+        debugPrint("[PhotoGridVM] Deselected photo")
+    }
+    
+    /// Navigates to the previous photo
+    func previousPhoto() {
+        guard let current = selectedPhoto,
+              let currentIndex = photos.firstIndex(where: { $0.id == current.id }),
+              currentIndex > 0 else {
+            return
+        }
+        selectedPhoto = photos[currentIndex - 1]
+        debugPrint("[PhotoGridVM] Previous photo: \(selectedPhoto?.fileName ?? "none")")
+    }
+    
+    /// Navigates to the next photo
+    func nextPhoto() {
+        guard let current = selectedPhoto,
+              let currentIndex = photos.firstIndex(where: { $0.id == current.id }),
+              currentIndex < photos.count - 1 else {
+            return
+        }
+        selectedPhoto = photos[currentIndex + 1]
+        debugPrint("[PhotoGridVM] Next photo: \(selectedPhoto?.fileName ?? "none")")
     }
     
     /// Loads thumbnails for photo items

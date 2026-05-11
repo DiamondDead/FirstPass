@@ -62,10 +62,23 @@ struct PhotoGridView: View {
                 ScrollView {
                     LazyVGrid(columns: [gridItem], spacing: 12) {
                         ForEach(viewModel.photos) { photo in
-                            PhotoThumbnailView(photo: photo)
+                            Button(action: {
+                                viewModel.selectPhoto(photo)
+                            }) {
+                                PhotoThumbnailView(photo: photo)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding()
+                }
+                .overlay {
+                    // Photo viewer overlay
+                    if viewModel.selectedPhoto != nil {
+                        PhotoViewerView(viewModel: viewModel)
+                            .transition(.opacity)
+                            .zIndex(1)
+                    }
                 }
             }
         }

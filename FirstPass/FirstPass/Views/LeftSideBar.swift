@@ -9,6 +9,7 @@ import SwiftUI
 
 struct LeftSideBar: View {
     let viewModel: FolderTreeVM
+    let isDarkSidebar: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -77,11 +78,12 @@ struct LeftSideBar: View {
                 .padding()
             }
         }
+        .background(isDarkSidebar ? Color.black.opacity(0.7) : Color.clear)
     }
 }
 
 #Preview {
     let vm = FolderTreeVM()
-    return LeftSideBar(viewModel: vm)
+    return LeftSideBar(viewModel: vm, isDarkSidebar: false)
         .frame(width: 250)
 }
