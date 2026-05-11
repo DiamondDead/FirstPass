@@ -9,6 +9,16 @@ import Foundation
 import AppKit
 import ImageIO
 
+// MARK: - Array Extension for Chunking
+
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
+        }
+    }
+}
+
 /// View model for managing photo grid display
 @Observable
 @MainActor
@@ -90,17 +100,23 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Loading thumbnails for \(photoItems.count) photos")
         
         Task {
-            await withTaskGroup(of: (PhotoItem, NSImage?).self) { group in
-                for photoItem in photoItems {
-                    group.addTask {
-                        let thumbnail = await self.extractThumbnail(from: photoItem.url)
-                        return (photoItem, thumbnail)
+            let maxConcurrent = 4
+            let chunks = photoItems.chunked(into: maxConcurrent)
+            
+            for chunk in chunks {
+                await withTaskGroup(of: (PhotoItem, NSImage?, ImageOrientation).self) { group in
+                    for photoItem in chunk {
+                        group.addTask {
+                            let (thumbnail, orientation) = await self.extractThumbnail(from: photoItem.url)
+                            return (photoItem, thumbnail, orientation)
+                        }
                     }
-                }
-                
-                for await (photoItem, thumbnail) in group {
-                    photoItem.thumbnail = thumbnail
-                    photoItem.isLoadingThumbnail = false
+                    
+                    for await (photoItem, thumbnail, orientation) in group {
+                        photoItem.thumbnail = thumbnail
+                        photoItem.orientation = orientation
+                        photoItem.isLoadingThumbnail = false
+                    }
                 }
             }
             
@@ -110,23 +126,116 @@ final class PhotoGridVM {
     }
     
     /// Extracts JPEG preview thumbnail from a RAW file
-    private func extractThumbnail(from url: URL) async -> NSImage? {
+    private func extractThumbnail(from url: URL) async -> (NSImage?, ImageOrientation) {
         debugPrint("[PhotoGridVM] Extracting thumbnail from: \(url.lastPathComponent)")
         
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) else {
             debugPrint("[PhotoGridVM] Failed to create image source for: \(url.lastPathComponent)")
-            return nil
+            return (nil, .landscape)
         }
         
-        // Get the image at index 0 (first image in the file)
-        guard let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
-            debugPrint("[PhotoGridVM] Failed to create CGImage for: \(url.lastPathComponent)")
-            return nil
+        // Extract orientation from EXIF metadata
+        let orientation = extractOrientation(from: imageSource)
+        
+        // Create thumbnail with reduced size for faster loading (max 800px on longest side)
+        let thumbnailSize: CGFloat = 800
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: false,
+            kCGImageSourceThumbnailMaxPixelSize: thumbnailSize
+        ]
+        
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, options as CFDictionary) else {
+            debugPrint("[PhotoGridVM] Failed to create thumbnail for: \(url.lastPathComponent)")
+            return (nil, orientation)
         }
+        
+        // Note: kCGImageSourceCreateThumbnailWithTransform applies EXIF rotation automatically
+        // No need for manual rotation
         
         // Create NSImage from CGImage
         let nsImage = NSImage(cgImage: cgImage, size: .zero)
-        debugPrint("[PhotoGridVM] Thumbnail extracted for: \(url.lastPathComponent)")
-        return nsImage
+        debugPrint("[PhotoGridVM] Thumbnail extracted for: \(url.lastPathComponent) with orientation: \(orientation)")
+        return (nsImage, orientation)
+    }
+    
+    /// Applies EXIF orientation rotation to the image
+    private func applyOrientation(to cgImage: CGImage, from imageSource: CGImageSource) -> CGImage {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any],
+              let orientationValue = properties[kCGImagePropertyOrientation] as? Int else {
+            return cgImage
+        }
+        
+        // EXIF orientation values:
+        // 1: Normal (0°)
+        // 6: Rotate 90° CW
+        // 8: Rotate 90° CCW
+        switch orientationValue {
+        case 6:
+            // Rotate 90° counter-clockwise instead of clockwise
+            return rotateImage(cgImage, degrees: -90)
+        case 8:
+            // Rotate 90° clockwise instead of counter-clockwise
+            return rotateImage(cgImage, degrees: 90)
+        case 3:
+            // Rotate 180°
+            return rotateImage(cgImage, degrees: 180)
+        default:
+            return cgImage
+        }
+    }
+    
+    /// Rotates a CGImage by specified degrees
+    private func rotateImage(_ image: CGImage, degrees: Int) -> CGImage {
+        let radians = CGFloat(degrees) * .pi / 180
+        let destWidth = image.height
+        let destHeight = image.width
+        
+        let context = CGContext(data: nil,
+                                width: destWidth,
+                                height: destHeight,
+                                bitsPerComponent: image.bitsPerComponent,
+                                bytesPerRow: 0,
+                                space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: image.bitmapInfo.rawValue)
+        
+        context?.translateBy(x: CGFloat(destWidth) / 2, y: CGFloat(destHeight) / 2)
+        context?.rotate(by: radians)
+        context?.translateBy(x: -CGFloat(image.width) / 2, y: -CGFloat(image.height) / 2)
+        context?.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        
+        return context?.makeImage() ?? image
+    }
+    
+    /// Extracts image orientation from EXIF metadata
+    private func extractOrientation(from imageSource: CGImageSource) -> ImageOrientation {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any] else {
+            return .landscape
+        }
+        
+        // Get orientation from EXIF (standard value 1-8)
+        if let orientationValue = properties[kCGImagePropertyOrientation] as? Int {
+            // EXIF orientation values:
+            // 1: Normal (landscape)
+            // 6: Rotate 90° CW (portrait)
+            // 8: Rotate 90° CCW (portrait)
+            switch orientationValue {
+            case 6, 8:
+                return .portrait
+            default:
+                return .landscape
+            }
+        }
+        
+        // Fallback to image dimensions
+        if let width = properties[kCGImagePropertyPixelWidth] as? Int,
+           let height = properties[kCGImagePropertyPixelHeight] as? Int {
+            if height > width {
+                return .portrait
+            }
+        }
+        
+        return .landscape
     }
 }

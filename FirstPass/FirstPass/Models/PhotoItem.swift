@@ -8,6 +8,13 @@
 import Foundation
 import AppKit
 
+// MARK: - Image Orientation Enum
+
+enum ImageOrientation {
+    case portrait
+    case landscape
+}
+
 /// Represents a photo file with its preview thumbnail
 @Observable
 final class PhotoItem: Identifiable, Hashable {
@@ -16,6 +23,7 @@ final class PhotoItem: Identifiable, Hashable {
     let fileName: String
     var thumbnail: NSImage?
     var isLoadingThumbnail: Bool = false
+    var orientation: ImageOrientation = .landscape
     
     // Metadata
     var flag: Flag = .unflagged

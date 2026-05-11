@@ -84,12 +84,12 @@ struct PhotoThumbnailView: View {
                     Image(nsImage: thumbnail)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 120)
+                        .frame(height: photo.orientation == .portrait ? 150 : 120)
                 } else {
                     // Loading placeholder
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 120)
+                        .frame(height: photo.orientation == .portrait ? 150 : 120)
                         .overlay {
                             if photo.isLoadingThumbnail {
                                 ProgressView()
