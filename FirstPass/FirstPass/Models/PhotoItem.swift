@@ -22,7 +22,9 @@ final class PhotoItem: Identifiable, Hashable {
     let url: URL
     let fileName: String
     var thumbnail: NSImage?
+    var fullImage: NSImage?
     var isLoadingThumbnail: Bool = false
+    var isLoadingFullImage: Bool = false
     var orientation: ImageOrientation = .landscape
     
     // Metadata

@@ -67,11 +67,29 @@ struct PhotoViewerView: View {
                     // Main photo display
                     GeometryReader { geometry in
                         ZStack {
-                            if let thumbnail = photo.thumbnail {
+                            // Display full image for non-RAW formats, thumbnail for RAW
+                            if let fullImage = photo.fullImage {
+                                Image(nsImage: fullImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: geometry.size.width, maxHeight: geometry.size.height)
+                            } else if let thumbnail = photo.thumbnail {
                                 Image(nsImage: thumbnail)
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
                                     .frame(maxWidth: geometry.size.width, maxHeight: geometry.size.height)
+                                if photo.isLoadingFullImage {
+                                    // Loading indicator for full image
+                                    VStack {
+                                        ProgressView()
+                                            .controlSize(.large)
+                                            .foregroundStyle(.white)
+                                            .padding()
+                                        Text("Chargement en haute qualité...")
+                                            .foregroundStyle(.white)
+                                            .font(.caption)
+                                    }
+                                }
                             } else {
                                 ProgressView()
                                     .controlSize(.large)

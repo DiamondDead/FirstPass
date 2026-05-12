@@ -38,6 +38,12 @@ final class PhotoGridVM {
         "heic", "jpg", "jpeg", "tif", "tiff"
     ]
     
+    // MARK: - RAW format extensions
+    
+    private let rawExtensions: Set<String> = [
+        "cr3", "cr2", "arw", "nef", "raf", "rw2", "orf", "dng", "raw"
+    ]
+    
     // MARK: - Initialization
     
     init() {
@@ -101,6 +107,9 @@ final class PhotoGridVM {
     func selectPhoto(_ photo: PhotoItem) {
         selectedPhoto = photo
         debugPrint("[PhotoGridVM] Selected photo: \(photo.fileName)")
+        
+        // Load full-quality image for non-RAW formats
+        loadFullImage(for: photo)
     }
     
     /// Deselects the current photo
@@ -118,6 +127,11 @@ final class PhotoGridVM {
         }
         selectedPhoto = photos[currentIndex - 1]
         debugPrint("[PhotoGridVM] Previous photo: \(selectedPhoto?.fileName ?? "none")")
+        
+        // Load full-quality image for non-RAW formats
+        if let photo = selectedPhoto {
+            loadFullImage(for: photo)
+        }
     }
     
     /// Navigates to the next photo
@@ -129,6 +143,62 @@ final class PhotoGridVM {
         }
         selectedPhoto = photos[currentIndex + 1]
         debugPrint("[PhotoGridVM] Next photo: \(selectedPhoto?.fileName ?? "none")")
+        
+        // Load full-quality image for non-RAW formats
+        if let photo = selectedPhoto {
+            loadFullImage(for: photo)
+        }
+    }
+    
+    /// Loads full-quality image for non-RAW formats
+    private func loadFullImage(for photo: PhotoItem) {
+        let fileExtension = photo.url.pathExtension.lowercased()
+        
+        // Skip loading full image for RAW formats (they're heavy to decode)
+        guard !rawExtensions.contains(fileExtension) else {
+            debugPrint("[PhotoGridVM] Skipping full image load for RAW format: \(photo.fileName)")
+            return
+        }
+        
+        // Skip if already loaded or loading
+        guard photo.fullImage == nil && !photo.isLoadingFullImage else {
+            debugPrint("[PhotoGridVM] Full image already loaded or loading for: \(photo.fileName)")
+            return
+        }
+        
+        photo.isLoadingFullImage = true
+        debugPrint("[PhotoGridVM] Loading full image for non-RAW format: \(photo.fileName)")
+        
+        Task {
+            let fullImage = await loadFullQualityImage(from: photo.url)
+            await MainActor.run {
+                photo.fullImage = fullImage
+                photo.isLoadingFullImage = false
+                debugPrint("[PhotoGridVM] Full image loaded for: \(photo.fileName)")
+            }
+        }
+    }
+    
+    /// Loads full-quality image from a non-RAW file
+    private func loadFullQualityImage(from url: URL) async -> NSImage? {
+        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+            debugPrint("[PhotoGridVM] Failed to create image source for: \(url.lastPathComponent)")
+            return nil
+        }
+        
+        // Load full image without size limit
+        let options: [CFString: Any] = [
+            kCGImageSourceShouldCacheImmediately: true
+        ]
+        
+        guard let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, options as CFDictionary) else {
+            debugPrint("[PhotoGridVM] Failed to create full image for: \(url.lastPathComponent)")
+            return nil
+        }
+        
+        let nsImage = NSImage(cgImage: cgImage, size: .zero)
+        debugPrint("[PhotoGridVM] Full image loaded for: \(url.lastPathComponent)")
+        return nsImage
     }
     
     /// Loads thumbnails for photo items
