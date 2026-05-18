@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// View for displaying photos in a grid layout
 struct PhotoGridView: View {
@@ -13,6 +14,8 @@ struct PhotoGridView: View {
     
     // Grid configuration
     private let gridItem = GridItem(.adaptive(minimum: 150), spacing: 8)
+    private let itemSpacing: CGFloat = 8
+    private let padding: CGFloat = 12 * 2 // horizontal padding on both sides
     
     var body: some View {
         Group {
@@ -59,32 +62,60 @@ struct PhotoGridView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // Photo grid
-                ScrollView {
-                    LazyVGrid(columns: [gridItem], spacing: 12) {
-                        ForEach(viewModel.photos) { photo in
-                            PhotoThumbnailView(
-                                photo: photo,
-                                onTap: {
-                                    viewModel.selectPhoto(photo)
-                                },
-                                onCmdTap: {
-                                    viewModel.toggleSelection(photo)
-                                }
-                            )
+                GeometryReader { geometry in
+                    ScrollView {
+                        LazyVGrid(columns: [gridItem], spacing: 12) {
+                            ForEach(viewModel.photos) { photo in
+                                PhotoThumbnailView(
+                                    photo: photo,
+                                    onTap: {
+                                        viewModel.selectPhoto(photo)
+                                    },
+                                    onCmdTap: {
+                                        viewModel.toggleSelection(photo)
+                                    }
+                                )
+                            }
+                        }
+                        .padding()
+                    }
+                    .overlay {
+                        // Photo viewer overlay
+                        if viewModel.selectedPhoto != nil {
+                            PhotoViewerView(viewModel: viewModel)
+                                .transition(.opacity)
+                                .zIndex(1)
                         }
                     }
-                    .padding()
-                }
-                .overlay {
-                    // Photo viewer overlay
-                    if viewModel.selectedPhoto != nil {
-                        PhotoViewerView(viewModel: viewModel)
-                            .transition(.opacity)
-                            .zIndex(1)
+                    .onAppear {
+                        updateGridColumns(width: geometry.size.width)
+                    }
+                    .onChange(of: geometry.size.width) { _, newWidth in
+                        updateGridColumns(width: newWidth)
                     }
                 }
             }
         }
+        .background(
+            KeyboardMonitor(
+                cmdLeftArrowAction: { viewModel.selectPhotoToLeft() },
+                cmdRightArrowAction: { viewModel.selectPhotoToRight() },
+                cmdDownArrowAction: { viewModel.selectRowBelow() },
+                cmdUpArrowAction: { viewModel.selectRowAbove() },
+                cmdEscapeAction: { viewModel.deselectAll() }
+            )
+        )
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// Updates the grid columns count based on available width
+    private func updateGridColumns(width: CGFloat) {
+        let availableWidth = width - padding
+        let itemMinWidth: CGFloat = 150
+        let calculatedColumns = max(1, Int(availableWidth / (itemMinWidth + itemSpacing)))
+        viewModel.gridColumns = calculatedColumns
+        debugPrint("[PhotoGridView] Updated grid columns to: \(calculatedColumns) for width: \(width)")
     }
 }
 
@@ -119,8 +150,14 @@ struct PhotoThumbnailView: View {
         .onHover { hovering in
             isHovering = hovering
         }
-        .gesture(cmdTapGesture)
-        .onTapGesture(perform: onTap)
+        .onTapGesture {
+            // Use currentEvent modifiers for accurate Cmd detection at click time
+            if NSApp.currentEvent?.modifierFlags.contains(.command) == true {
+                onCmdTap()
+            } else {
+                onTap()
+            }
+        }
     }
     
     @ViewBuilder
@@ -166,14 +203,6 @@ struct PhotoThumbnailView: View {
         photo.isSelected ? Color.blue : Color.gray.opacity(0.3)
     }
     
-    private var cmdTapGesture: some Gesture {
-        TapGesture()
-            .modifiers(.command)
-            .onEnded { _ in
-                onCmdTap()
-            }
-    }
-    
     private var fileNameText: some View {
         Text(photo.fileName)
             .font(.system(size: 11))
@@ -187,4 +216,76 @@ struct PhotoThumbnailView: View {
     let vm = PhotoGridVM()
     return PhotoGridView(viewModel: vm)
         .frame(width: 800, height: 600)
+}
+
+// MARK: - Keyboard Monitor
+
+/// Global keyboard event monitor for Cmd+arrow shortcuts
+/// Uses coordinator to always call the latest closures and avoids duplicate monitors
+struct KeyboardMonitor: NSViewRepresentable {
+    let cmdLeftArrowAction: () -> Void
+    let cmdRightArrowAction: () -> Void
+    let cmdDownArrowAction: () -> Void
+    let cmdUpArrowAction: () -> Void
+    let cmdEscapeAction: () -> Void
+    
+    func makeNSView(context: Context) -> NSView {
+        NSView()
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Always update coordinator with the latest closures
+        context.coordinator.cmdLeftArrowAction = cmdLeftArrowAction
+        context.coordinator.cmdRightArrowAction = cmdRightArrowAction
+        context.coordinator.cmdDownArrowAction = cmdDownArrowAction
+        context.coordinator.cmdUpArrowAction = cmdUpArrowAction
+        context.coordinator.cmdEscapeAction = cmdEscapeAction
+        
+        // Register monitor only once
+        guard context.coordinator.monitor == nil else { return }
+        debugPrint("[KeyboardMonitor] Registering local event monitor")
+        context.coordinator.monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak coordinator = context.coordinator] event in
+            // addLocalMonitorForEvents already fires on the main thread
+            let isCmdPressed = event.modifierFlags.contains(.command)
+            switch event.keyCode {
+            case 123 where isCmdPressed: // Cmd + Left arrow
+                coordinator?.cmdLeftArrowAction()
+                return nil
+            case 124 where isCmdPressed: // Cmd + Right arrow
+                coordinator?.cmdRightArrowAction()
+                return nil
+            case 125 where isCmdPressed: // Cmd + Down arrow
+                coordinator?.cmdDownArrowAction()
+                return nil
+            case 126 where isCmdPressed: // Cmd + Up arrow
+                coordinator?.cmdUpArrowAction()
+                return nil
+            case 53 where isCmdPressed: // Cmd + Escape
+                coordinator?.cmdEscapeAction()
+                return nil
+            default:
+                return event
+            }
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator {
+        var monitor: Any?
+        var cmdLeftArrowAction: () -> Void = {}
+        var cmdRightArrowAction: () -> Void = {}
+        var cmdDownArrowAction: () -> Void = {}
+        var cmdUpArrowAction: () -> Void = {}
+        var cmdEscapeAction: () -> Void = {}
+        
+        deinit {
+            if let monitor = monitor {
+                debugPrint("[KeyboardMonitor] Removing local event monitor")
+                NSEvent.removeMonitor(monitor)
+            }
+        }
+    }
 }

@@ -14,12 +14,20 @@ struct KeyboardShortcutHandler: NSViewRepresentable {
     let leftArrowAction: () -> Void
     let rightArrowAction: () -> Void
     let escapeAction: () -> Void
+    let cmdLeftArrowAction: () -> Void
+    let cmdRightArrowAction: () -> Void
+    let cmdDownArrowAction: () -> Void
+    let cmdUpArrowAction: () -> Void
     
     func makeNSView(context: Context) -> KeyHandlingView {
         let view = KeyHandlingView()
         view.leftArrowAction = leftArrowAction
         view.rightArrowAction = rightArrowAction
         view.escapeAction = escapeAction
+        view.cmdLeftArrowAction = cmdLeftArrowAction
+        view.cmdRightArrowAction = cmdRightArrowAction
+        view.cmdDownArrowAction = cmdDownArrowAction
+        view.cmdUpArrowAction = cmdUpArrowAction
         // Make the view first responder to receive key events
         DispatchQueue.main.async {
             view.window?.makeFirstResponder(view)
@@ -33,17 +41,43 @@ struct KeyboardShortcutHandler: NSViewRepresentable {
         var leftArrowAction: (() -> Void)?
         var rightArrowAction: (() -> Void)?
         var escapeAction: (() -> Void)?
+        var cmdLeftArrowAction: (() -> Void)?
+        var cmdRightArrowAction: (() -> Void)?
+        var cmdDownArrowAction: (() -> Void)?
+        var cmdUpArrowAction: (() -> Void)?
         
         override var acceptsFirstResponder: Bool {
             return true
         }
         
         override func keyDown(with event: NSEvent) {
+            let isCmdPressed = event.modifierFlags.contains(.command)
+            
             switch event.keyCode {
             case 123: // Left arrow
-                leftArrowAction?()
+                if isCmdPressed {
+                    cmdLeftArrowAction?()
+                } else {
+                    leftArrowAction?()
+                }
             case 124: // Right arrow
-                rightArrowAction?()
+                if isCmdPressed {
+                    cmdRightArrowAction?()
+                } else {
+                    rightArrowAction?()
+                }
+            case 125: // Down arrow
+                if isCmdPressed {
+                    cmdDownArrowAction?()
+                } else {
+                    super.keyDown(with: event)
+                }
+            case 126: // Up arrow
+                if isCmdPressed {
+                    cmdUpArrowAction?()
+                } else {
+                    super.keyDown(with: event)
+                }
             case 53: // Escape
                 escapeAction?()
             default:
@@ -183,7 +217,11 @@ struct PhotoViewerView: View {
             KeyboardShortcutHandler(
                 leftArrowAction: { viewModel.previousPhoto() },
                 rightArrowAction: { viewModel.nextPhoto() },
-                escapeAction: { viewModel.deselectPhoto() }
+                escapeAction: { viewModel.deselectPhoto() },
+                cmdLeftArrowAction: {},
+                cmdRightArrowAction: {},
+                cmdDownArrowAction: {},
+                cmdUpArrowAction: {}
             )
         )
     }

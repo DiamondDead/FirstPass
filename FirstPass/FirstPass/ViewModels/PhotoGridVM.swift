@@ -28,8 +28,10 @@ final class PhotoGridVM {
     
     var photos: [PhotoItem] = []
     var selectedPhoto: PhotoItem?
+    var activePhotoForNavigation: PhotoItem? // Photo used as reference for keyboard selection
     var isLoading: Bool = false
     var errorMessage: String?
+    var gridColumns: Int = 4 // Default, will be updated by view
     
     // MARK: - Supported image extensions
     
@@ -113,10 +115,111 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Deselected photo")
     }
     
+    /// Deselects all photos and clears the active navigation point
+    func deselectAll() {
+        for photo in photos {
+            photo.isSelected = false
+        }
+        activePhotoForNavigation = nil
+        debugPrint("[PhotoGridVM] Deselected all photos")
+    }
+    
     /// Toggles selection state of a photo for multi-select (Cmd+click)
     func toggleSelection(_ photo: PhotoItem) {
         photo.isSelected.toggle()
-        debugPrint("[PhotoGridVM] Toggled selection for photo: \(photo.fileName) - now selected: \(photo.isSelected)")
+        if photo.isSelected {
+            // Always update anchor to the last photo selected — this is the reference for arrow navigation
+            activePhotoForNavigation = photo
+        } else if activePhotoForNavigation?.id == photo.id {
+            // If we deselected the current anchor, clear it
+            activePhotoForNavigation = nil
+        }
+        debugPrint("[PhotoGridVM] Toggled selection for photo: \(photo.fileName) - selected: \(photo.isSelected), anchor: \(activePhotoForNavigation?.fileName ?? "none")")
+    }
+    
+    /// Selects photo to the left with Cmd+left arrow
+    func selectPhotoToLeft() {
+        guard let activePhoto = activePhotoForNavigation,
+              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }),
+              currentIndex > 0 else {
+            debugPrint("[PhotoGridVM] Cannot select photo to left: no active photo or at start")
+            return
+        }
+        
+        let leftPhoto = photos[currentIndex - 1]
+        leftPhoto.isSelected = true
+        activePhotoForNavigation = leftPhoto
+        debugPrint("[PhotoGridVM] Selected photo to left: \(leftPhoto.fileName)")
+    }
+    
+    /// Selects photo to the right with Cmd+right arrow
+    func selectPhotoToRight() {
+        guard let activePhoto = activePhotoForNavigation,
+              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }),
+              currentIndex < photos.count - 1 else {
+            debugPrint("[PhotoGridVM] Cannot select photo to right: no active photo or at end")
+            return
+        }
+        
+        let rightPhoto = photos[currentIndex + 1]
+        rightPhoto.isSelected = true
+        activePhotoForNavigation = rightPhoto
+        debugPrint("[PhotoGridVM] Selected photo to right: \(rightPhoto.fileName)")
+    }
+    
+    /// Selects entire row below with Cmd+down arrow
+    func selectRowBelow() {
+        guard let activePhoto = activePhotoForNavigation,
+              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }) else {
+            debugPrint("[PhotoGridVM] Cannot select row below: no active photo")
+            return
+        }
+        
+        let currentRow = currentIndex / gridColumns
+        let targetRow = currentRow + 1
+        let startIndex = targetRow * gridColumns
+        let endIndex = min(startIndex + gridColumns, photos.count)
+        
+        guard startIndex < photos.count else {
+            debugPrint("[PhotoGridVM] Cannot select row below: already at last row")
+            return
+        }
+        
+        for i in startIndex..<endIndex {
+            photos[i].isSelected = true
+        }
+        
+        // Set active navigation point to the first photo in the new row
+        activePhotoForNavigation = photos[startIndex]
+        debugPrint("[PhotoGridVM] Selected row \(targetRow) with \(endIndex - startIndex) photos")
+    }
+    
+    /// Selects entire row above with Cmd+up arrow
+    func selectRowAbove() {
+        guard let activePhoto = activePhotoForNavigation,
+              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }) else {
+            debugPrint("[PhotoGridVM] Cannot select row above: no active photo")
+            return
+        }
+        
+        let currentRow = currentIndex / gridColumns
+        let targetRow = currentRow - 1
+        
+        guard targetRow >= 0 else {
+            debugPrint("[PhotoGridVM] Cannot select row above: already at first row")
+            return
+        }
+        
+        let startIndex = targetRow * gridColumns
+        let endIndex = min(startIndex + gridColumns, photos.count)
+        
+        for i in startIndex..<endIndex {
+            photos[i].isSelected = true
+        }
+        
+        // Set active navigation point to the first photo in the new row
+        activePhotoForNavigation = photos[startIndex]
+        debugPrint("[PhotoGridVM] Selected row \(targetRow) with \(endIndex - startIndex) photos")
     }
     
     /// Navigates to the previous photo
