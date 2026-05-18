@@ -50,7 +50,7 @@ struct FolderTreeView: View {
                     Text(folder.name)
                         .font(.system(size: 13))
                         .lineLimit(1)
-                        .foregroundStyle(viewModel.selectedFolder?.id == folder.id ? .white : .primary)
+                        .foregroundStyle(.primary)
                     
                     Spacer()
                     
@@ -66,7 +66,7 @@ struct FolderTreeView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .background(viewModel.selectedFolder?.id == folder.id ? Color.accentColor : Color.clear)
+            .background(viewModel.selectedFolder?.id == folder.id ? Color.gray.opacity(0.15) : Color.clear)
             .cornerRadius(4)
             
             // Subfolders (if expanded)
