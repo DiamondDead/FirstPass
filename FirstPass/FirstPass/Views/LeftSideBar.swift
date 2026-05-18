@@ -22,16 +22,19 @@ struct LeftSideBar: View {
                         Text("Ouvrir un dossier")
                     }
                     .font(.system(size: 13))
+                    .foregroundStyle(Color.fpAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 12)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .buttonStyle(.plain)
+                .background(Color.fpAccent.opacity(0.12))
+                .cornerRadius(6)
             }
             .padding()
             
             Divider()
+                .background(Color.white.opacity(0.06))
             
             // Folder tree
             if let errorMessage = viewModel.errorMessage {
@@ -45,7 +48,7 @@ struct LeftSideBar: View {
                         .foregroundStyle(.red)
                     Text(errorMessage)
                         .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.fpTextSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -64,19 +67,20 @@ struct LeftSideBar: View {
                 VStack(spacing: 12) {
                     Image(systemName: "folder")
                         .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.fpTextSecondary)
                     Text("Aucun dossier ouvert")
                         .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.fpTextSecondary)
                     Text("Cliquez sur \"Ouvrir un dossier\" pour commencer")
                         .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.fpTextSecondary.opacity(0.7))
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding()
             }
         }
+        .background(Color.fpContent)
     }
 }
 
@@ -84,4 +88,5 @@ struct LeftSideBar: View {
     let vm = FolderTreeVM()
     return LeftSideBar(viewModel: vm)
         .frame(width: 250)
+        .background(Color.fpBackground)
 }

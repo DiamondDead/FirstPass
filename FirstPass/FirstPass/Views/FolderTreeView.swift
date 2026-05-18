@@ -33,7 +33,7 @@ struct FolderTreeView: View {
                     if !folder.subfolders.isEmpty {
                         Image(systemName: folder.isExpanded ? "chevron.down" : "chevron.right")
                             .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.fpTextSecondary)
                             .frame(width: 12)
                     } else {
                         // Spacer to maintain alignment
@@ -44,21 +44,21 @@ struct FolderTreeView: View {
                     // Folder icon
                     Image(systemName: "folder.fill")
                         .font(.system(size: 14))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(viewModel.selectedFolder?.id == folder.id ? Color.fpAccent : Color.fpTextSecondary)
                     
                     // Folder name
                     Text(folder.name)
                         .font(.system(size: 13))
                         .lineLimit(1)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(viewModel.selectedFolder?.id == folder.id ? Color.fpText : Color.fpTextSecondary)
                     
                     Spacer()
                     
                     // Photo count
                     if folder.photoCount > 0 {
                         Text("\(folder.photoCount)")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Color.fpTextSecondary)
                     }
                 }
                 .padding(.vertical, 4)
@@ -66,7 +66,7 @@ struct FolderTreeView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .background(viewModel.selectedFolder?.id == folder.id ? Color.gray.opacity(0.15) : Color.clear)
+            .background(viewModel.selectedFolder?.id == folder.id ? Color.black.opacity(0.11) : Color.clear)
             .cornerRadius(4)
             
             // Subfolders (if expanded)

@@ -33,6 +33,47 @@ final class PhotoGridVM {
     var errorMessage: String?
     var gridColumns: Int = 4 // Default, will be updated by view
     
+    // Filter state
+    var filterFlag: FilterFlag = .all
+    var minStars: Int = 0
+    var selectedColorLabels: Set<ColorLabel> = []
+    
+    // MARK: - Computed Properties
+    
+    /// Photos filtered by current filter settings
+    var filteredPhotos: [PhotoItem] {
+        let hasColorLabels = !selectedColorLabels.isEmpty
+        
+        return photos.filter { photo in
+            // Filter by flag
+            switch filterFlag {
+            case .all:
+                break
+            case .pick:
+                if photo.flag != .pick { return false }
+            case .reject:
+                if photo.flag != .rejected { return false }
+            case .unflagged:
+                if photo.flag != .unflagged { return false }
+            }
+            
+            // Filter by minimum stars
+            if photo.rating < minStars { return false }
+            
+            // Filter by color labels
+            if hasColorLabels && !selectedColorLabels.contains(photo.colorLabel) { return false }
+            
+            return true
+        }
+    }
+    
+    /// Count of photos for each filter category
+    var totalCount: Int { photos.count }
+    var pickCount: Int { photos.filter { $0.flag == .pick }.count }
+    var rejectCount: Int { photos.filter { $0.flag == .rejected }.count }
+    var unflaggedCount: Int { photos.filter { $0.flag == .unflagged }.count }
+    var filteredCount: Int { filteredPhotos.count }
+    
     // MARK: - Supported image extensions
     
     private let imageExtensions: Set<String> = [
@@ -262,6 +303,68 @@ final class PhotoGridVM {
         if let photo = selectedPhoto {
             loadFullImage(for: photo)
         }
+    }
+    
+    /// Sets the flag of the currently selected photo to Pick
+    func setFlagPick() {
+        guard let photo = selectedPhoto else {
+            debugPrint("[PhotoGridVM] Cannot set flag: no photo selected")
+            return
+        }
+        photo.flag = .pick
+        debugPrint("[PhotoGridVM] Set flag to Pick for: \(photo.fileName)")
+    }
+    
+    /// Sets the flag of the currently selected photo to Reject
+    func setFlagReject() {
+        guard let photo = selectedPhoto else {
+            debugPrint("[PhotoGridVM] Cannot set flag: no photo selected")
+            return
+        }
+        photo.flag = .rejected
+        debugPrint("[PhotoGridVM] Set flag to Reject for: \(photo.fileName)")
+    }
+    
+    /// Sets the flag of the currently selected photo to Unflagged
+    func setFlagUnflagged() {
+        guard let photo = selectedPhoto else {
+            debugPrint("[PhotoGridVM] Cannot set flag: no photo selected")
+            return
+        }
+        photo.flag = .unflagged
+        debugPrint("[PhotoGridVM] Set flag to Unflagged for: \(photo.fileName)")
+    }
+    
+    /// Sets the star rating of the currently selected photo
+    func setRating(_ rating: Int) {
+        guard let photo = selectedPhoto else {
+            debugPrint("[PhotoGridVM] Cannot set rating: no photo selected")
+            return
+        }
+        // Toggle off if same rating, otherwise set new rating
+        photo.rating = photo.rating == rating ? 0 : rating
+        debugPrint("[PhotoGridVM] Set rating to \(photo.rating) for: \(photo.fileName)")
+    }
+    
+    /// Sets the color label of the currently selected photo
+    func setColorLabel(_ label: ColorLabel) {
+        guard let photo = selectedPhoto else {
+            debugPrint("[PhotoGridVM] Cannot set color label: no photo selected")
+            return
+        }
+        // Toggle off if same label, otherwise set new label
+        photo.colorLabel = photo.colorLabel == label ? .none : label
+        debugPrint("[PhotoGridVM] Set color label to \(photo.colorLabel) for: \(photo.fileName)")
+    }
+    
+    /// Clears the color label of the currently selected photo
+    func clearColorLabel() {
+        guard let photo = selectedPhoto else {
+            debugPrint("[PhotoGridVM] Cannot clear color label: no photo selected")
+            return
+        }
+        photo.colorLabel = .none
+        debugPrint("[PhotoGridVM] Cleared color label for: \(photo.fileName)")
     }
     
     /// Loads full-quality image for non-RAW formats
