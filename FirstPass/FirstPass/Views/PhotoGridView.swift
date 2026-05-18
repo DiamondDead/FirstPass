@@ -102,7 +102,9 @@ struct PhotoGridView: View {
                 cmdRightArrowAction: { viewModel.selectPhotoToRight() },
                 cmdDownArrowAction: { viewModel.selectRowBelow() },
                 cmdUpArrowAction: { viewModel.selectRowAbove() },
-                cmdEscapeAction: { viewModel.deselectAll() }
+                escapeAction: { viewModel.deselectAll() },
+                cmdAAction: { viewModel.selectAll() },
+                isViewingPhoto: viewModel.selectedPhoto != nil
             )
         )
     }
@@ -227,41 +229,53 @@ struct KeyboardMonitor: NSViewRepresentable {
     let cmdRightArrowAction: () -> Void
     let cmdDownArrowAction: () -> Void
     let cmdUpArrowAction: () -> Void
-    let cmdEscapeAction: () -> Void
+    let escapeAction: () -> Void
+    let cmdAAction: () -> Void
+    let isViewingPhoto: Bool
     
     func makeNSView(context: Context) -> NSView {
         NSView()
     }
     
     func updateNSView(_ nsView: NSView, context: Context) {
-        // Always update coordinator with the latest closures
+        // Always update coordinator with the latest closures and state
         context.coordinator.cmdLeftArrowAction = cmdLeftArrowAction
         context.coordinator.cmdRightArrowAction = cmdRightArrowAction
         context.coordinator.cmdDownArrowAction = cmdDownArrowAction
         context.coordinator.cmdUpArrowAction = cmdUpArrowAction
-        context.coordinator.cmdEscapeAction = cmdEscapeAction
+        context.coordinator.escapeAction = escapeAction
+        context.coordinator.cmdAAction = cmdAAction
+        context.coordinator.isViewingPhoto = isViewingPhoto
         
         // Register monitor only once
         guard context.coordinator.monitor == nil else { return }
         debugPrint("[KeyboardMonitor] Registering local event monitor")
         context.coordinator.monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak coordinator = context.coordinator] event in
-            // addLocalMonitorForEvents already fires on the main thread
+            guard let coordinator else { return event }
             let isCmdPressed = event.modifierFlags.contains(.command)
+            
             switch event.keyCode {
             case 123 where isCmdPressed: // Cmd + Left arrow
-                coordinator?.cmdLeftArrowAction()
+                coordinator.cmdLeftArrowAction()
                 return nil
             case 124 where isCmdPressed: // Cmd + Right arrow
-                coordinator?.cmdRightArrowAction()
+                coordinator.cmdRightArrowAction()
                 return nil
             case 125 where isCmdPressed: // Cmd + Down arrow
-                coordinator?.cmdDownArrowAction()
+                coordinator.cmdDownArrowAction()
                 return nil
             case 126 where isCmdPressed: // Cmd + Up arrow
-                coordinator?.cmdUpArrowAction()
+                coordinator.cmdUpArrowAction()
                 return nil
-            case 53 where isCmdPressed: // Cmd + Escape
-                coordinator?.cmdEscapeAction()
+            case 0 where isCmdPressed: // Cmd + A (keyCode 0 is 'a')
+                // Don't intercept Cmd+A when viewer is open (might want it for image actions later)
+                guard !coordinator.isViewingPhoto else { return event }
+                coordinator.cmdAAction()
+                return nil
+            case 53: // Escape (no Cmd)
+                // When viewer is open, let the viewer's own escape handler close it
+                guard !coordinator.isViewingPhoto else { return event }
+                coordinator.escapeAction()
                 return nil
             default:
                 return event
@@ -279,7 +293,9 @@ struct KeyboardMonitor: NSViewRepresentable {
         var cmdRightArrowAction: () -> Void = {}
         var cmdDownArrowAction: () -> Void = {}
         var cmdUpArrowAction: () -> Void = {}
-        var cmdEscapeAction: () -> Void = {}
+        var escapeAction: () -> Void = {}
+        var cmdAAction: () -> Void = {}
+        var isViewingPhoto: Bool = false
         
         deinit {
             if let monitor = monitor {

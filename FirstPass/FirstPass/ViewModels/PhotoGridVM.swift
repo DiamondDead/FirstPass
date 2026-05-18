@@ -124,6 +124,16 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Deselected all photos")
     }
     
+    /// Selects all photos in the grid
+    func selectAll() {
+        for photo in photos {
+            photo.isSelected = true
+        }
+        // Set anchor to the last photo so arrow navigation continues from there
+        activePhotoForNavigation = photos.last
+        debugPrint("[PhotoGridVM] Selected all \(photos.count) photos")
+    }
+    
     /// Toggles selection state of a photo for multi-select (Cmd+click)
     func toggleSelection(_ photo: PhotoItem) {
         photo.isSelected.toggle()
