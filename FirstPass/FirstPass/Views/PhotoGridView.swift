@@ -89,20 +89,23 @@ struct PhotoGridView: View {
 struct PhotoThumbnailView: View {
     let photo: PhotoItem
     
+    // Fixed container size for thumbnails
+    private let containerSize: CGFloat = 150
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Thumbnail image
+            // Fixed-size container for thumbnail
             ZStack {
                 if let thumbnail = photo.thumbnail {
                     Image(nsImage: thumbnail)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: photo.orientation == .portrait ? 150 : 120)
+                        .frame(width: containerSize, height: containerSize)
                 } else {
                     // Loading placeholder
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: photo.orientation == .portrait ? 150 : 120)
+                        .frame(width: containerSize, height: containerSize)
                         .overlay {
                             if photo.isLoadingThumbnail {
                                 ProgressView()
@@ -111,6 +114,8 @@ struct PhotoThumbnailView: View {
                         }
                 }
             }
+            .frame(width: containerSize, height: containerSize)
+            .background(Color.gray.opacity(0.1))
             .cornerRadius(6)
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
@@ -122,6 +127,7 @@ struct PhotoThumbnailView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .frame(width: containerSize)
         }
     }
 }
