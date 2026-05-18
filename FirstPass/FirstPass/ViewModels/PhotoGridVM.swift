@@ -61,13 +61,8 @@ final class PhotoGridVM {
         photos = []
         selectedPhoto = nil
         
-        // Request security-scoped bookmark access
-        let accessing = folderURL.startAccessingSecurityScopedResource()
-        defer {
-            if accessing {
-                folderURL.stopAccessingSecurityScopedResource()
-            }
-        }
+        // Note: Security-scoped resource access is managed by FolderTreeVM
+        // We don't need to start/stop it here since the parent folder maintains the access
         
         do {
             let fileManager = FileManager.default

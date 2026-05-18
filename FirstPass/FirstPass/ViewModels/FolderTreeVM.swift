@@ -19,7 +19,12 @@ final class FolderTreeVM {
     var selectedFolder: FolderItem?
     var errorMessage: String?
     private var securityScopedBookmark: Data?
+    private var currentFolderURL: URL?
     weak var photoGridVM: PhotoGridVM?
+    
+    // MARK: - UserDefaults Keys
+    
+    private let bookmarkKey = "lastFolderBookmark"
     
     // MARK: - Supported image extensions
     
@@ -33,6 +38,9 @@ final class FolderTreeVM {
     init(photoGridVM: PhotoGridVM? = nil) {
         self.photoGridVM = photoGridVM
         debugPrint("[FolderTreeVM] Initialized")
+        
+        // Try to restore last opened folder
+        restoreLastFolder()
     }
     
     // MARK: - Public Methods
@@ -65,13 +73,18 @@ final class FolderTreeVM {
         // Clear any previous error
         errorMessage = nil
         
-        // Request security-scoped bookmark access
-        let accessing = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessing {
-                url.stopAccessingSecurityScopedResource()
-            }
+        // Stop accessing previous folder if any
+        if let previousURL = currentFolderURL {
+            debugPrint("[FolderTreeVM] Stopping access to previous folder: \(previousURL.path)")
+            previousURL.stopAccessingSecurityScopedResource()
         }
+        
+        // Request security-scoped bookmark access and keep it alive
+        let accessing = url.startAccessingSecurityScopedResource()
+        if !accessing {
+            debugPrint("[FolderTreeVM] Warning: Failed to start accessing security-scoped resource")
+        }
+        currentFolderURL = url
         
         // Create root folder item
         let rootName = url.lastPathComponent
@@ -87,11 +100,17 @@ final class FolderTreeVM {
         if totalPhotos == 0 {
             errorMessage = "Ce dossier ne contient aucune photo. Veuillez sélectionner un dossier avec des fichiers RAW, JPEG ou TIFF."
             debugPrint("[FolderTreeVM] Error: No photos found in folder")
+            // Stop accessing since we're not keeping this folder
+            url.stopAccessingSecurityScopedResource()
+            currentFolderURL = nil
             return
         }
         
         self.rootFolder = rootFolder
         self.selectedFolder = rootFolder
+        
+        // Save the bookmark for persistence
+        saveFolderBookmark(for: url)
         
         debugPrint("[FolderTreeVM] Folder loaded with \(rootFolder.subfolders.count) subfolders and \(totalPhotos) total photos")
     }
@@ -112,6 +131,57 @@ final class FolderTreeVM {
     }
     
     // MARK: - Private Methods
+    
+    /// Saves the security-scoped bookmark for the folder
+    private func saveFolderBookmark(for url: URL) {
+        debugPrint("[FolderTreeVM] Saving bookmark for folder: \(url.path)")
+        
+        do {
+            let bookmark = try url.bookmarkData(
+                options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+            securityScopedBookmark = bookmark
+            UserDefaults.standard.set(bookmark, forKey: bookmarkKey)
+            debugPrint("[FolderTreeVM] Bookmark saved successfully")
+        } catch {
+            debugPrint("[FolderTreeVM] Error saving bookmark: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Restores the last opened folder from the saved bookmark
+    private func restoreLastFolder() {
+        debugPrint("[FolderTreeVM] Attempting to restore last folder")
+        
+        guard let bookmarkData = UserDefaults.standard.data(forKey: bookmarkKey) else {
+            debugPrint("[FolderTreeVM] No saved bookmark found")
+            return
+        }
+        
+        do {
+            var isStale = false
+            let url = try URL(
+                resolvingBookmarkData: bookmarkData,
+                options: [.withSecurityScope, .withoutUI],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            )
+            
+            if isStale {
+                debugPrint("[FolderTreeVM] Bookmark is stale, clearing it")
+                UserDefaults.standard.removeObject(forKey: bookmarkKey)
+                return
+            }
+            
+            debugPrint("[FolderTreeVM] Restoring folder from bookmark: \(url.path)")
+            loadFolder(at: url)
+            
+        } catch {
+            debugPrint("[FolderTreeVM] Error restoring bookmark: \(error.localizedDescription)")
+            UserDefaults.standard.removeObject(forKey: bookmarkKey)
+        }
+    }
     
     /// Calculates total photos in a folder and all its subfolders
     private func calculateTotalPhotos(in folder: FolderItem) -> Int {
