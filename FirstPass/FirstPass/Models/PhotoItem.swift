@@ -27,6 +27,9 @@ final class PhotoItem: Identifiable, Hashable {
     var isLoadingFullImage: Bool = false
     var orientation: ImageOrientation = .landscape
     
+    // Selection state for multi-select
+    var isSelected: Bool = false
+    
     // Metadata
     var flag: Flag = .unflagged
     var rating: Int = 0

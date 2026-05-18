@@ -113,6 +113,12 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Deselected photo")
     }
     
+    /// Toggles selection state of a photo for multi-select (Cmd+click)
+    func toggleSelection(_ photo: PhotoItem) {
+        photo.isSelected.toggle()
+        debugPrint("[PhotoGridVM] Toggled selection for photo: \(photo.fileName) - now selected: \(photo.isSelected)")
+    }
+    
     /// Navigates to the previous photo
     func previousPhoto() {
         guard let current = selectedPhoto,
