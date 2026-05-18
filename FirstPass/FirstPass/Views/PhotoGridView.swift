@@ -109,7 +109,7 @@ struct PhotoGridView: View {
                                 ForEach(viewModel.filteredPhotos) { photo in
                                     PhotoThumbnailView(
                                         photo: photo,
-                                        isSelected: viewModel.selectedPhoto?.id == photo.id,
+                                        isSelected: photo.isSelected,
                                         onTap: {
                                             viewModel.selectPhoto(photo)
                                         },
@@ -226,11 +226,6 @@ struct PhotoThumbnailView: View {
                 starOverlay
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
-            
-            // Reject diagonal slash
-            if photo.flag == .rejected {
-                rejectSlash
-            }
         }
         .aspectRatio(3/2, contentMode: .fit)
         .background(Color(red: 0.04, green: 0.04, blue: 0.045)) // #0a0a0b
@@ -313,17 +308,6 @@ struct PhotoThumbnailView: View {
                 endPoint: .top
             )
         )
-    }
-    
-    private var rejectSlash: some View {
-        ZStack {
-            Path { path in
-                path.move(to: CGPoint(x: 0, y: 0))
-                path.addLine(to: CGPoint(x: 100, y: 60))
-            }
-            .stroke(Color(red: 1.0, green: 0.27, blue: 0.23), lineWidth: 0.5)
-        }
-        .opacity(0.7)
     }
     
     private var selectionRing: some View {
