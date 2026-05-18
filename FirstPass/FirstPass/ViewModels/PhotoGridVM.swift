@@ -123,6 +123,8 @@ final class PhotoGridVM {
             var photoItems: [PhotoItem] = []
             for fileURL in imageFiles {
                 let photoItem = PhotoItem(url: fileURL, fileName: fileURL.lastPathComponent)
+                // Load EXIF metadata
+                photoItem.loadEXIFMetadata()
                 photoItems.append(photoItem)
             }
             
