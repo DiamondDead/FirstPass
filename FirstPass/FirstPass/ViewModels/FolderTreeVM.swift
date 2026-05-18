@@ -138,7 +138,7 @@ final class FolderTreeVM {
         
         do {
             let bookmark = try url.bookmarkData(
-                options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
+                options: [.withSecurityScope],
                 includingResourceValuesForKeys: nil,
                 relativeTo: nil
             )
@@ -227,6 +227,77 @@ final class FolderTreeVM {
             
         } catch {
             debugPrint("[FolderTreeVM] Error scanning folder \(url.path): \(error.localizedDescription)")
+        }
+    }
+    
+    /// Creates a new folder in the current directory and optionally moves selected photos into it
+    /// - Parameters:
+    ///   - folderName: The name of the new folder to create
+    ///   - photoURLs: URLs of the photos to move (if includeSelectedPhotos is true)
+    ///   - includeSelectedPhotos: If true, moves all photos to the new folder
+    /// - Returns: URL of the created folder, or nil if failed
+    @discardableResult
+    func createFolderAndMovePhotos(folderName: String, photoURLs: [URL], includeSelectedPhotos: Bool) -> URL? {
+        debugPrint("[FolderTreeVM] Creating folder: \(folderName), include photos: \(includeSelectedPhotos)")
+        
+        guard !photoURLs.isEmpty else {
+            debugPrint("[FolderTreeVM] No photos provided, cannot create folder")
+            return nil
+        }
+        
+        // Derive the parent directory directly from the first photo's URL
+        // This is always reliable regardless of selectedFolder state
+        let parentURL = photoURLs[0].deletingLastPathComponent()
+        debugPrint("[FolderTreeVM] Parent directory for new folder: \(parentURL.path)")
+        
+        let fileManager = FileManager.default
+        let newFolderURL = parentURL.appendingPathComponent(folderName)
+        
+        // Check if folder already exists
+        if fileManager.fileExists(atPath: newFolderURL.path) {
+            debugPrint("[FolderTreeVM] Folder already exists at: \(newFolderURL.path)")
+            return nil
+        }
+        
+        do {
+            // Create the new folder
+            try fileManager.createDirectory(at: newFolderURL, withIntermediateDirectories: false, attributes: nil)
+            debugPrint("[FolderTreeVM] Created folder at: \(newFolderURL.path)")
+            
+            // Move photos if requested
+            if includeSelectedPhotos {
+                var movedCount = 0
+                for photoURL in photoURLs {
+                    let fileName = photoURL.lastPathComponent
+                    let destinationURL = newFolderURL.appendingPathComponent(fileName)
+                    
+                    // Also move XMP sidecar if it exists
+                    let xmpSourceURL = photoURL.deletingPathExtension().appendingPathExtension("xmp")
+                    let xmpDestinationURL = newFolderURL.appendingPathComponent(xmpSourceURL.lastPathComponent)
+                    
+                    do {
+                        // Move the photo file
+                        try fileManager.moveItem(at: photoURL, to: destinationURL)
+                        debugPrint("[FolderTreeVM] Moved photo: \(fileName) to new folder")
+                        
+                        // Move XMP sidecar if it exists
+                        if fileManager.fileExists(atPath: xmpSourceURL.path) {
+                            try fileManager.moveItem(at: xmpSourceURL, to: xmpDestinationURL)
+                            debugPrint("[FolderTreeVM] Moved XMP sidecar for: \(fileName)")
+                        }
+                        
+                        movedCount += 1
+                    } catch {
+                        debugPrint("[FolderTreeVM] Error moving photo \(fileName): \(error.localizedDescription)")
+                    }
+                }
+                debugPrint("[FolderTreeVM] Moved \(movedCount)/\(photoURLs.count) photos to new folder")
+            }
+            
+            return newFolderURL
+        } catch {
+            debugPrint("[FolderTreeVM] Error creating folder: \(error.localizedDescription)")
+            return nil
         }
     }
 }

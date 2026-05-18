@@ -23,6 +23,8 @@ struct FilterBar: View {
     let rejectCount: Int
     let unflaggedCount: Int
     let filteredCount: Int
+    let selectedPhotoCount: Int
+    let onCreateFolder: () -> Void
     
     // Color label hex values from web design
     private let colorLabelHex: [ColorLabel: Color] = [
@@ -69,6 +71,34 @@ struct FilterBar: View {
                 selectedLabels: $selectedColorLabels,
                 colorHex: colorLabelHex
             )
+            
+            // Create folder button (only visible when photos are selected)
+            if selectedPhotoCount > 0 {
+                Button(action: onCreateFolder) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 11))
+                        Text("Nouveau dossier")
+                            .font(.system(size: 11.5, weight: .medium))
+                        Text("(\(selectedPhotoCount))")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(Color.fpTextSecondary.opacity(0.8))
+                    }
+                    .foregroundStyle(Color.fpText)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.fpAccent.opacity(0.16))
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.fpAccent.opacity(0.4), lineWidth: 0.5)
+                    )
+                }
+                .buttonStyle(.plain)
+                
+                Divider()
+                    .frame(height: 16)
+            }
             
             Spacer()
             
@@ -226,7 +256,11 @@ struct ColorLabelChips: View {
         pickCount: 45,
         rejectCount: 12,
         unflaggedCount: 93,
-        filteredCount: 150
+        filteredCount: 150,
+        selectedPhotoCount: 5,
+        onCreateFolder: {
+            debugPrint("Create folder clicked")
+        }
     )
     .background(Color.fpBackground)
 }

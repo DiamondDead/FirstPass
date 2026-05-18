@@ -32,7 +32,7 @@ struct EXIFMetadata {
 @Observable
 final class PhotoItem: Identifiable, Hashable {
     let id = UUID()
-    let url: URL
+    var url: URL
     let fileName: String
     var thumbnail: NSImage?
     var fullImage: NSImage?

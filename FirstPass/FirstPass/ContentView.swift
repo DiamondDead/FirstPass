@@ -40,7 +40,7 @@ struct ContentView: View {
                 )
                 
                 // Photo grid
-                PhotoGridView(viewModel: photoGridVM)
+                PhotoGridView(viewModel: photoGridVM, folderTreeVM: folderTreeVM)
                     .frame(minWidth: 700)
             }
         }

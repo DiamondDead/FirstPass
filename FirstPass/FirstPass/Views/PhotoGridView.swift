@@ -11,6 +11,8 @@ import AppKit
 /// View for displaying photos in a grid layout
 struct PhotoGridView: View {
     let viewModel: PhotoGridVM
+    let folderTreeVM: FolderTreeVM
+    @State private var showCreateFolderDialog = false
     
     // Grid configuration
     private let gridItem = GridItem(.adaptive(minimum: 230), spacing: 16)
@@ -38,7 +40,9 @@ struct PhotoGridView: View {
                     pickCount: viewModel.pickCount,
                     rejectCount: viewModel.rejectCount,
                     unflaggedCount: viewModel.unflaggedCount,
-                    filteredCount: viewModel.filteredCount
+                    filteredCount: viewModel.filteredCount,
+                    selectedPhotoCount: selectedPhotoCount,
+                    onCreateFolder: { showCreateFolderDialog = true }
                 )
             }
             
@@ -158,9 +162,44 @@ struct PhotoGridView: View {
                 clearColorLabelAction: { viewModel.clearColorLabel() }
             )
         )
+        .overlay {
+            // Create folder dialog — full-screen dim blocks click-through
+            if showCreateFolderDialog {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .onTapGesture { showCreateFolderDialog = false }
+                
+                CreateFolderDialog(
+                    selectedPhotoCount: selectedPhotoCount,
+                    onCreateFolder: { folderName, includePhotos in
+                        debugPrint("[PhotoGridView] Creating folder: \(folderName), include photos: \(includePhotos)")
+                        let selectedPhotoURLs = viewModel.photos.filter { $0.isSelected }.map { $0.url }
+                        _ = folderTreeVM.createFolderAndMovePhotos(
+                            folderName: folderName,
+                            photoURLs: selectedPhotoURLs,
+                            includeSelectedPhotos: includePhotos
+                        )
+                        if includePhotos {
+                            viewModel.deselectAll()
+                            // Reload photos from the current folder to reflect moved files
+                            if let currentFolder = folderTreeVM.selectedFolder {
+                                viewModel.loadPhotos(from: currentFolder.url)
+                            }
+                        }
+                        showCreateFolderDialog = false
+                    },
+                    onDismiss: { showCreateFolderDialog = false }
+                )
+            }
+        }
     }
     
     // MARK: - Helper Methods
+    
+    /// Count of selected photos
+    private var selectedPhotoCount: Int {
+        viewModel.photos.filter { $0.isSelected }.count
+    }
     
     /// Updates the grid columns count based on available width
     private func updateGridColumns(width: CGFloat) {
@@ -326,7 +365,8 @@ struct PhotoThumbnailView: View {
 
 #Preview {
     let vm = PhotoGridVM()
-    return PhotoGridView(viewModel: vm)
+    let folderVM = FolderTreeVM()
+    return PhotoGridView(viewModel: vm, folderTreeVM: folderVM)
         .frame(width: 800, height: 600)
 }
 
