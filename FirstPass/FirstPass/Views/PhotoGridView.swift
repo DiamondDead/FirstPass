@@ -289,7 +289,8 @@ struct PhotoThumbnailView: View {
             }
         }
         .aspectRatio(3/2, contentMode: .fit)
-        .background(Color(red: 0.04, green: 0.04, blue: 0.045)) // #0a0a0b
+        // Transparent so vertical photos blend with the grid instead of showing black letterbox bars
+        .background(Color.clear)
         .cornerRadius(4)
         .overlay(selectionRing)
         .shadow(color: .black.opacity(isSelected ? 0.4 : 0.15), radius: isSelected ? 8 : 2, x: 0, y: isSelected ? 8 : 1)
@@ -320,6 +321,7 @@ struct PhotoThumbnailView: View {
                 .aspectRatio(contentMode: .fit)
                 .opacity(photo.flag == .rejected ? 0.65 : 1.0)
                 .saturation(photo.flag == .rejected ? 0.4 : 1.0)
+                .cornerRadius(4) // round the actual image corners (esp. for portrait on transparent bg)
         } else {
             loadingPlaceholder
         }
@@ -359,22 +361,16 @@ struct PhotoThumbnailView: View {
     }
     
     private var starOverlay: some View {
-        HStack(spacing: 1.5) {
+        HStack(spacing: 2) {
             ForEach(1...5, id: \.self) { star in
                 Image(systemName: star <= photo.rating ? "star.fill" : "star")
                     .font(.system(size: 10))
-                    .foregroundStyle(star <= photo.rating ? Color.fpAccent : Color.white.opacity(0.3))
+                    .foregroundStyle(star <= photo.rating ? Color.fpAccent : Color.white.opacity(0.4))
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 14)
-        .background(
-            LinearGradient(
-                colors: [Color.black.opacity(0.7), Color.clear],
-                startPoint: .bottom,
-                endPoint: .top
-            )
-        )
+        .padding(8)
+        // Soft drop shadow per star for legibility — replaces the hard-edged gradient bar
+        .shadow(color: .black.opacity(0.85), radius: 3, x: 0, y: 1)
     }
     
     private var selectionRing: some View {
