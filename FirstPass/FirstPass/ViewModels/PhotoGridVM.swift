@@ -29,6 +29,7 @@ final class PhotoGridVM {
     var photos: [PhotoItem] = []
     var selectedPhoto: PhotoItem?
     var activePhotoForNavigation: PhotoItem? // Photo used as reference for keyboard selection
+    var draggingPhotoURLs: [URL] = [] // URLs of photos currently dragged to a sidebar folder
     var isLoading: Bool = false
     var errorMessage: String?
     var gridColumns: Int = 4 // Default, will be updated by view

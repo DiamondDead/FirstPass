@@ -6,12 +6,16 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Recursive view for displaying folder tree structure
 struct FolderTreeView: View {
     let folder: FolderItem
     let viewModel: FolderTreeVM
     let depth: Int
+    
+    // True while photos are being dragged over this folder row (for highlight)
+    @State private var isDropTargeted = false
     
     init(folder: FolderItem, viewModel: FolderTreeVM, depth: Int = 0) {
         self.folder = folder
@@ -68,6 +72,24 @@ struct FolderTreeView: View {
             .buttonStyle(.plain)
             .background(viewModel.selectedFolder?.id == folder.id ? Color.black.opacity(0.11) : Color.clear)
             .cornerRadius(4)
+            // Highlight the row while photos are dragged over it
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(isDropTargeted ? Color.fpAccent : Color.clear, lineWidth: 1.5)
+            )
+            .background(isDropTargeted ? Color.fpAccent.opacity(0.12) : Color.clear)
+            // Accept dropped photos and move them into this folder
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { _ in
+                let dragged = viewModel.photoGridVM?.draggingPhotoURLs ?? []
+                guard !dragged.isEmpty else {
+                    debugPrint("[FolderTreeView] Drop on \(folder.name) but no dragged photos")
+                    return false
+                }
+                debugPrint("[FolderTreeView] Dropping \(dragged.count) photo(s) onto \(folder.name)")
+                viewModel.movePhotos(dragged, to: folder)
+                viewModel.photoGridVM?.draggingPhotoURLs = []
+                return true
+            }
             
             // Subfolders (if expanded)
             if folder.isExpanded && !folder.subfolders.isEmpty {

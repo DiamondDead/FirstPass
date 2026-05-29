@@ -322,4 +322,120 @@ final class FolderTreeVM {
             return nil
         }
     }
+    
+    // MARK: - Tree Refresh & Photo Move
+    
+    /// Re-scans the open folder tree from disk, preserving expansion and selection.
+    /// Use after external changes or moving files to update photo counts and subfolders.
+    func refreshTree() {
+        guard let rootURL = rootFolder?.url ?? currentFolderURL else {
+            debugPrint("[FolderTreeVM] refreshTree: no folder open, nothing to refresh")
+            return
+        }
+        debugPrint("[FolderTreeVM] Refreshing tree from: \(rootURL.path)")
+        
+        // Capture current UI state so it survives the rebuild
+        var expandedURLs = Set<URL>()
+        if let root = rootFolder { collectExpandedURLs(root, into: &expandedURLs) }
+        let selectedURL = selectedFolder?.url
+        
+        // Rebuild the tree from disk
+        let newRoot = FolderItem(url: rootURL, name: rootURL.lastPathComponent)
+        scanFolder(rootURL, into: newRoot)
+        
+        // Restore expansion state by URL, then publish the new tree
+        restoreExpansion(newRoot, expandedURLs: expandedURLs)
+        rootFolder = newRoot
+        
+        // Restore selection (fallback to root) and reload its photos in the grid
+        let target = selectedURL.flatMap { findFolder(in: newRoot, matching: $0) } ?? newRoot
+        selectedFolder = target
+        photoGridVM?.loadPhotos(from: target.url)
+        debugPrint("[FolderTreeVM] Tree refreshed, selected: \(target.name)")
+    }
+    
+    /// Moves photos (and their XMP sidecars) into the destination folder, then refreshes the tree.
+    /// - Parameters:
+    ///   - photoURLs: Source photo file URLs to move
+    ///   - destination: The folder the photos should be moved into
+    func movePhotos(_ photoURLs: [URL], to destination: FolderItem) {
+        guard !photoURLs.isEmpty else {
+            debugPrint("[FolderTreeVM] movePhotos: no photos to move")
+            return
+        }
+        debugPrint("[FolderTreeVM] Moving \(photoURLs.count) photo(s) to: \(destination.name)")
+        creationError = nil
+        
+        let fileManager = FileManager.default
+        let destURL = destination.url
+        var movedCount = 0
+        var skipped = 0
+        
+        for photoURL in photoURLs {
+            // Skip photos already located in the destination folder
+            if photoURL.deletingLastPathComponent().standardizedFileURL == destURL.standardizedFileURL {
+                debugPrint("[FolderTreeVM] Skipping \(photoURL.lastPathComponent): already in destination")
+                continue
+            }
+            
+            let destinationURL = destURL.appendingPathComponent(photoURL.lastPathComponent)
+            
+            // Don't overwrite an existing file at the destination
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                debugPrint("[FolderTreeVM] Skipping \(photoURL.lastPathComponent): already exists in destination")
+                skipped += 1
+                continue
+            }
+            
+            do {
+                try fileManager.moveItem(at: photoURL, to: destinationURL)
+                debugPrint("[FolderTreeVM] Moved \(photoURL.lastPathComponent) to \(destination.name)")
+                
+                // Move the XMP sidecar too, if present
+                let xmpSourceURL = photoURL.deletingPathExtension().appendingPathExtension("xmp")
+                if fileManager.fileExists(atPath: xmpSourceURL.path) {
+                    let xmpDestURL = destURL.appendingPathComponent(xmpSourceURL.lastPathComponent)
+                    try? fileManager.moveItem(at: xmpSourceURL, to: xmpDestURL)
+                    debugPrint("[FolderTreeVM] Moved XMP sidecar for \(photoURL.lastPathComponent)")
+                }
+                movedCount += 1
+            } catch {
+                debugPrint("[FolderTreeVM] Error moving \(photoURL.lastPathComponent): \(error.localizedDescription)")
+            }
+        }
+        
+        debugPrint("[FolderTreeVM] Move complete: \(movedCount) moved, \(skipped) skipped")
+        
+        if skipped > 0 {
+            creationError = "\(skipped) photo(s) n'ont pas pu être déplacées (un fichier du même nom existe déjà)."
+        }
+        
+        // Refresh counts and grid only if something actually changed
+        if movedCount > 0 {
+            refreshTree()
+        }
+    }
+    
+    // MARK: - Tree Helpers
+    
+    /// Collects the URLs of all expanded folders in the tree.
+    private func collectExpandedURLs(_ folder: FolderItem, into set: inout Set<URL>) {
+        if folder.isExpanded { set.insert(folder.url) }
+        for sub in folder.subfolders { collectExpandedURLs(sub, into: &set) }
+    }
+    
+    /// Restores the expanded state on a freshly scanned tree using captured URLs.
+    private func restoreExpansion(_ folder: FolderItem, expandedURLs: Set<URL>) {
+        folder.isExpanded = expandedURLs.contains(folder.url)
+        for sub in folder.subfolders { restoreExpansion(sub, expandedURLs: expandedURLs) }
+    }
+    
+    /// Finds a folder in the tree matching the given URL.
+    private func findFolder(in folder: FolderItem, matching url: URL) -> FolderItem? {
+        if folder.url.standardizedFileURL == url.standardizedFileURL { return folder }
+        for sub in folder.subfolders {
+            if let match = findFolder(in: sub, matching: url) { return match }
+        }
+        return nil
+    }
 }

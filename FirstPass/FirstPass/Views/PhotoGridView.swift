@@ -119,6 +119,14 @@ struct PhotoGridView: View {
                                         },
                                         onCmdTap: {
                                             viewModel.toggleSelection(photo)
+                                        },
+                                        onDragPhotos: {
+                                            // Drag the whole selection if this photo is selected, else just this one
+                                            let urls = photo.isSelected
+                                                ? viewModel.photos.filter { $0.isSelected }.map { $0.url }
+                                                : [photo.url]
+                                            viewModel.draggingPhotoURLs = urls
+                                            return urls
                                         }
                                     )
                                 }
@@ -229,6 +237,8 @@ struct PhotoThumbnailView: View {
     let isSelected: Bool
     let onTap: () -> Void
     let onCmdTap: () -> Void
+    // Returns the file URLs to drag (selection if this photo is selected, otherwise just this one)
+    let onDragPhotos: () -> [URL]
     
     // Color label hex values from web design
     private let colorLabelHex: [ColorLabel: Color] = [
@@ -293,6 +303,12 @@ struct PhotoThumbnailView: View {
             } else {
                 onTap()
             }
+        }
+        // Drag this photo (or the whole selection) to a sidebar folder to move it
+        .onDrag {
+            let urls = onDragPhotos()
+            debugPrint("[PhotoThumbnailView] Dragging \(urls.count) photo(s)")
+            return urls.first.map { NSItemProvider(object: $0 as NSURL) } ?? NSItemProvider()
         }
     }
     

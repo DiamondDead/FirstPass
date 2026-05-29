@@ -12,8 +12,8 @@ struct LeftSideBar: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header with open button
-            VStack(alignment: .leading, spacing: 8) {
+            // Header with open + refresh buttons
+            HStack(spacing: 8) {
                 Button(action: {
                     viewModel.openFolder()
                 }) {
@@ -30,6 +30,23 @@ struct LeftSideBar: View {
                 .buttonStyle(.plain)
                 .background(Color.fpAccent.opacity(0.12))
                 .cornerRadius(6)
+                
+                // Force a re-scan of the folder tree from disk (updated counts, new/removed folders)
+                Button(action: {
+                    viewModel.refreshTree()
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.fpAccent)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 10)
+                }
+                .buttonStyle(.plain)
+                .background(Color.fpAccent.opacity(0.12))
+                .cornerRadius(6)
+                .disabled(viewModel.rootFolder == nil)
+                .opacity(viewModel.rootFolder == nil ? 0.4 : 1.0)
+                .help("Rafraîchir l'arborescence")
             }
             .padding()
             
