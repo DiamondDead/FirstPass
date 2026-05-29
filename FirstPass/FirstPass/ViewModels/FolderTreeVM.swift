@@ -18,6 +18,8 @@ final class FolderTreeVM {
     var rootFolder: FolderItem?
     var selectedFolder: FolderItem?
     var errorMessage: String?
+    // Transient error shown when creating a new folder fails (presented as an alert, not the sidebar error state)
+    var creationError: String?
     private var securityScopedBookmark: Data?
     private var currentFolderURL: URL?
     weak var photoGridVM: PhotoGridVM?
@@ -238,35 +240,44 @@ final class FolderTreeVM {
     /// - Returns: URL of the created folder, or nil if failed
     @discardableResult
     func createFolderAndMovePhotos(folderName: String, photoURLs: [URL], includeSelectedPhotos: Bool) -> URL? {
-        debugPrint("[FolderTreeVM] Creating folder: \(folderName), include photos: \(includeSelectedPhotos)")
+        debugPrint("[FolderTreeVM] Creating folder: \(folderName), include photos: \(includeSelectedPhotos), selected: \(photoURLs.count)")
+        creationError = nil
         
-        guard !photoURLs.isEmpty else {
-            debugPrint("[FolderTreeVM] No photos provided, cannot create folder")
+        // The new folder is created inside the currently selected folder (fallback: root)
+        guard let parentFolder = selectedFolder ?? rootFolder else {
+            debugPrint("[FolderTreeVM] No parent folder available, cannot create folder")
+            creationError = "Aucun dossier ouvert. Ouvrez un dossier avant de créer un sous-dossier."
             return nil
         }
         
-        // Derive the parent directory directly from the first photo's URL
-        // This is always reliable regardless of selectedFolder state
-        let parentURL = photoURLs[0].deletingLastPathComponent()
-        debugPrint("[FolderTreeVM] Parent directory for new folder: \(parentURL.path)")
+        // Validate the requested name
+        let trimmedName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            debugPrint("[FolderTreeVM] Empty folder name, aborting")
+            creationError = "Le nom du dossier ne peut pas être vide."
+            return nil
+        }
         
+        let parentURL = parentFolder.url
         let fileManager = FileManager.default
-        let newFolderURL = parentURL.appendingPathComponent(folderName)
+        let newFolderURL = parentURL.appendingPathComponent(trimmedName, isDirectory: true)
+        debugPrint("[FolderTreeVM] Parent directory for new folder: \(parentURL.path)")
         
         // Check if folder already exists
         if fileManager.fileExists(atPath: newFolderURL.path) {
             debugPrint("[FolderTreeVM] Folder already exists at: \(newFolderURL.path)")
+            creationError = "Un dossier nommé « \(trimmedName) » existe déjà."
             return nil
         }
         
         do {
-            // Create the new folder
+            // Create the new folder on disk
             try fileManager.createDirectory(at: newFolderURL, withIntermediateDirectories: false, attributes: nil)
             debugPrint("[FolderTreeVM] Created folder at: \(newFolderURL.path)")
             
-            // Move photos if requested
+            // Move photos (and their XMP sidecars) if requested
+            var movedCount = 0
             if includeSelectedPhotos {
-                var movedCount = 0
                 for photoURL in photoURLs {
                     let fileName = photoURL.lastPathComponent
                     let destinationURL = newFolderURL.appendingPathComponent(fileName)
@@ -294,9 +305,20 @@ final class FolderTreeVM {
                 debugPrint("[FolderTreeVM] Moved \(movedCount)/\(photoURLs.count) photos to new folder")
             }
             
+            // Update the in-memory tree so the sidebar shows the new subfolder right away
+            let newFolderItem = FolderItem(url: newFolderURL, name: trimmedName)
+            scanFolder(newFolderURL, into: newFolderItem) // populates photoCount / subfolders
+            parentFolder.subfolders.append(newFolderItem)
+            parentFolder.subfolders.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            parentFolder.isExpanded = true // reveal the freshly created folder
+            // The moved photos no longer live directly in the parent folder
+            parentFolder.photoCount = max(0, parentFolder.photoCount - movedCount)
+            debugPrint("[FolderTreeVM] Tree updated: added \(trimmedName) under \(parentFolder.name)")
+            
             return newFolderURL
         } catch {
             debugPrint("[FolderTreeVM] Error creating folder: \(error.localizedDescription)")
+            creationError = "Échec de la création du dossier : \(error.localizedDescription)"
             return nil
         }
     }

@@ -192,6 +192,18 @@ struct PhotoGridView: View {
                 )
             }
         }
+        // Surface any folder-creation failure to the user (e.g. duplicate name)
+        .alert(
+            "Création de dossier impossible",
+            isPresented: Binding(
+                get: { folderTreeVM.creationError != nil },
+                set: { if !$0 { folderTreeVM.creationError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { folderTreeVM.creationError = nil }
+        } message: {
+            Text(folderTreeVM.creationError ?? "")
+        }
     }
     
     // MARK: - Helper Methods

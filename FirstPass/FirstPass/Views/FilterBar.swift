@@ -72,33 +72,34 @@ struct FilterBar: View {
                 colorHex: colorLabelHex
             )
             
-            // Create folder button (only visible when photos are selected)
-            if selectedPhotoCount > 0 {
-                Button(action: onCreateFolder) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "folder.badge.plus")
-                            .font(.system(size: 11))
-                        Text("Nouveau dossier")
-                            .font(.system(size: 11.5, weight: .medium))
+            // Create folder button — always visible so a new folder can be created at any time.
+            // Shows the selected count only when photos are selected (those would be moved into it).
+            Button(action: onCreateFolder) {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 11))
+                    Text("Nouveau dossier")
+                        .font(.system(size: 11.5, weight: .medium))
+                    if selectedPhotoCount > 0 {
                         Text("(\(selectedPhotoCount))")
                             .font(.system(size: 10.5))
                             .foregroundStyle(Color.fpTextSecondary.opacity(0.8))
                     }
-                    .foregroundStyle(Color.fpText)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.fpAccent.opacity(0.16))
-                    .cornerRadius(6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.fpAccent.opacity(0.4), lineWidth: 0.5)
-                    )
                 }
-                .buttonStyle(.plain)
-                
-                Divider()
-                    .frame(height: 16)
+                .foregroundStyle(Color.fpText)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.fpAccent.opacity(0.16))
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.fpAccent.opacity(0.4), lineWidth: 0.5)
+                )
             }
+            .buttonStyle(.plain)
+            
+            Divider()
+                .frame(height: 16)
             
             Spacer()
             

@@ -50,18 +50,20 @@ struct CreateFolderDialog: View {
                 }
             }
             
-            // Checkbox for including selected photos
-            Toggle(isOn: $includeSelectedPhotos) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Inclure les photos sélectionnées")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.fpText)
-                    Text("\(selectedPhotoCount) photo\(selectedPhotoCount > 1 ? "s" : "")")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Color.fpTextSecondary)
+            // Checkbox for including selected photos — only relevant when photos are selected
+            if selectedPhotoCount > 0 {
+                Toggle(isOn: $includeSelectedPhotos) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Inclure les photos sélectionnées")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.fpText)
+                        Text("\(selectedPhotoCount) photo\(selectedPhotoCount > 1 ? "s" : "")")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.fpTextSecondary)
+                    }
                 }
+                .toggleStyle(.checkbox)
             }
-            .toggleStyle(.checkbox)
             
             // Action buttons
             HStack(spacing: 12) {
