@@ -126,6 +126,8 @@ final class PhotoGridVM {
                 let photoItem = PhotoItem(url: fileURL, fileName: fileURL.lastPathComponent)
                 // Load EXIF metadata
                 photoItem.loadEXIFMetadata()
+                // Load rating / color label / flag from XMP sidecar (incl. external Lightroom files)
+                photoItem.loadMetadataFromXMP()
                 photoItems.append(photoItem)
             }
             
@@ -314,7 +316,7 @@ final class PhotoGridVM {
             debugPrint("[PhotoGridVM] Cannot set flag: no photo selected")
             return
         }
-        photo.flag = .pick
+        photo.updateFlag(.pick)
         debugPrint("[PhotoGridVM] Set flag to Pick for: \(photo.fileName)")
     }
     
@@ -324,7 +326,7 @@ final class PhotoGridVM {
             debugPrint("[PhotoGridVM] Cannot set flag: no photo selected")
             return
         }
-        photo.flag = .rejected
+        photo.updateFlag(.rejected)
         debugPrint("[PhotoGridVM] Set flag to Reject for: \(photo.fileName)")
     }
     
@@ -334,7 +336,7 @@ final class PhotoGridVM {
             debugPrint("[PhotoGridVM] Cannot set flag: no photo selected")
             return
         }
-        photo.flag = .unflagged
+        photo.updateFlag(.unflagged)
         debugPrint("[PhotoGridVM] Set flag to Unflagged for: \(photo.fileName)")
     }
     
@@ -345,7 +347,7 @@ final class PhotoGridVM {
             return
         }
         // Toggle off if same rating, otherwise set new rating
-        photo.rating = photo.rating == rating ? 0 : rating
+        photo.updateRating(photo.rating == rating ? 0 : rating)
         debugPrint("[PhotoGridVM] Set rating to \(photo.rating) for: \(photo.fileName)")
     }
     
@@ -356,7 +358,7 @@ final class PhotoGridVM {
             return
         }
         // Toggle off if same label, otherwise set new label
-        photo.colorLabel = photo.colorLabel == label ? .none : label
+        photo.updateColorLabel(photo.colorLabel == label ? .none : label)
         debugPrint("[PhotoGridVM] Set color label to \(photo.colorLabel) for: \(photo.fileName)")
     }
     
@@ -366,7 +368,7 @@ final class PhotoGridVM {
             debugPrint("[PhotoGridVM] Cannot clear color label: no photo selected")
             return
         }
-        photo.colorLabel = .none
+        photo.updateColorLabel(.none)
         debugPrint("[PhotoGridVM] Cleared color label for: \(photo.fileName)")
     }
     

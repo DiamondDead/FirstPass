@@ -55,6 +55,55 @@ final class PhotoItem: Identifiable, Hashable {
         debugPrint("[PhotoItem] Created photo item: \(fileName) at \(url.path)")
     }
     
+    // MARK: - XMP Metadata Persistence
+    
+    /// Loads rating / color label / flag from the XMP sidecar, if one exists.
+    /// Supports external sidecars (Lightroom / Camera Raw).
+    func loadMetadataFromXMP() {
+        guard let meta = XMPSidecar.read(for: url) else { return }
+        
+        if let r = meta.rating, (0...5).contains(r) {
+            rating = r
+        }
+        if let label = meta.label, let mapped = ColorLabel(xmpLabel: label) {
+            colorLabel = mapped
+        }
+        if let pick = meta.pick {
+            switch pick {
+            case 1: flag = .pick
+            case -1: flag = .rejected
+            default: flag = .unflagged
+            }
+        }
+        debugPrint("[PhotoItem] Loaded XMP for \(fileName): rating=\(rating), label=\(colorLabel.rawValue), flag=\(flag.rawValue)")
+    }
+    
+    /// Writes the current rating / color label / flag to the XMP sidecar,
+    /// preserving any other metadata already present in the file.
+    func persistMetadata() {
+        XMPSidecar.write(rating: rating, label: colorLabel, flag: flag, for: url)
+    }
+    
+    // MARK: - Mutations (mutate + persist)
+    
+    /// Updates the star rating and persists it to the XMP sidecar.
+    func updateRating(_ newRating: Int) {
+        rating = newRating
+        persistMetadata()
+    }
+    
+    /// Updates the pick/reject flag and persists it to the XMP sidecar.
+    func updateFlag(_ newFlag: Flag) {
+        flag = newFlag
+        persistMetadata()
+    }
+    
+    /// Updates the color label and persists it to the XMP sidecar.
+    func updateColorLabel(_ newLabel: ColorLabel) {
+        colorLabel = newLabel
+        persistMetadata()
+    }
+    
     /// Loads EXIF metadata from the image file
     func loadEXIFMetadata() {
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
@@ -146,4 +195,17 @@ enum ColorLabel: String, CaseIterable {
     case green = "Green"
     case blue = "Blue"
     case purple = "Purple"
+    
+    /// Maps an Adobe `xmp:Label` string to a color label (case-insensitive).
+    /// Returns nil for unknown / custom labels so they don't override state.
+    init?(xmpLabel: String) {
+        switch xmpLabel.lowercased() {
+        case "red": self = .red
+        case "yellow": self = .yellow
+        case "green": self = .green
+        case "blue": self = .blue
+        case "purple": self = .purple
+        default: return nil
+        }
+    }
 }

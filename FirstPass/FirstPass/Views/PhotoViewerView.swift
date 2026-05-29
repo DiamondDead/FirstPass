@@ -545,15 +545,15 @@ struct TaggingBar: View {
             // Flag buttons
             HStack(spacing: 6) {
                 flagButton(label: "Pick", key: "P", isActive: photo.flag == .pick, color: Color(red: 0.18, green: 0.82, blue: 0.35)) {
-                    photo.flag = photo.flag == .pick ? .unflagged : .pick
+                    photo.updateFlag(photo.flag == .pick ? .unflagged : .pick)
                 }
                 
                 flagButton(label: "Unflag", key: "U", isActive: photo.flag == .unflagged, isMuted: true) {
-                    photo.flag = .unflagged
+                    photo.updateFlag(.unflagged)
                 }
                 
                 flagButton(label: "Reject", key: "X", isActive: photo.flag == .rejected, color: Color(red: 1.0, green: 0.27, blue: 0.23)) {
-                    photo.flag = photo.flag == .rejected ? .unflagged : .rejected
+                    photo.updateFlag(photo.flag == .rejected ? .unflagged : .rejected)
                 }
             }
             
@@ -627,7 +627,7 @@ struct TaggingBar: View {
     @ViewBuilder
     private func starButton(star: Int) -> some View {
         Button(action: {
-            photo.rating = photo.rating == star ? 0 : star
+            photo.updateRating(photo.rating == star ? 0 : star)
         }) {
             VStack(spacing: 2) {
                 Image(systemName: star <= photo.rating ? "star.fill" : "star")
@@ -651,7 +651,7 @@ struct TaggingBar: View {
     @ViewBuilder
     private func colorLabelButton(label: ColorLabel, index: Int) -> some View {
         Button(action: {
-            photo.colorLabel = photo.colorLabel == label ? .none : label
+            photo.updateColorLabel(photo.colorLabel == label ? .none : label)
         }) {
             VStack(spacing: 3) {
                 RoundedRectangle(cornerRadius: 4)
