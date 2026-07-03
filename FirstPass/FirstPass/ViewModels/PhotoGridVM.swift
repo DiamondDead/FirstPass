@@ -385,8 +385,23 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Cleared color label for: \(photo.fileName)")
     }
     
+    /// Releases decoded full-quality images except for the current photo and
+    /// its immediate neighbors, so long culling sessions don't accumulate
+    /// hundreds of full-size decoded images in memory.
+    private func purgeFullImages(keeping current: PhotoItem) {
+        var keep: Set<UUID> = [current.id]
+        if let prev = neighborPhoto(of: current, forward: false) { keep.insert(prev.id) }
+        if let next = neighborPhoto(of: current, forward: true) { keep.insert(next.id) }
+
+        for photo in photos where photo.fullImage != nil && !keep.contains(photo.id) {
+            photo.fullImage = nil
+        }
+    }
+
     /// Loads full-quality image for non-RAW formats
     private func loadFullImage(for photo: PhotoItem) {
+        purgeFullImages(keeping: photo)
+
         let fileExtension = photo.url.pathExtension.lowercased()
         
         // Skip loading full image for RAW formats (they're heavy to decode)
