@@ -120,23 +120,19 @@ final class PhotoGridVM {
             
             debugPrint("[PhotoGridVM] Found \(imageFiles.count) image files")
             
-            // Create photo items
+            // Create photo items — EXIF and XMP metadata are read in the
+            // background alongside the thumbnails to keep the UI responsive.
             var photoItems: [PhotoItem] = []
             for fileURL in imageFiles {
-                let photoItem = PhotoItem(url: fileURL, fileName: fileURL.lastPathComponent)
-                // Load EXIF metadata
-                photoItem.loadEXIFMetadata()
-                // Load rating / color label / flag from XMP sidecar (incl. external Lightroom files)
-                photoItem.loadMetadataFromXMP()
-                photoItems.append(photoItem)
+                photoItems.append(PhotoItem(url: fileURL, fileName: fileURL.lastPathComponent))
             }
-            
+
             // Sort alphabetically
             photoItems.sort { $0.fileName.localizedCaseInsensitiveCompare($1.fileName) == .orderedAscending }
-            
+
             self.photos = photoItems
-            
-            // Load thumbnails asynchronously
+
+            // Load thumbnails + metadata asynchronously
             loadThumbnails(for: photoItems)
             
         } catch {
@@ -423,31 +419,51 @@ final class PhotoGridVM {
         return nsImage
     }
     
-    /// Loads thumbnails for photo items
+    /// Result of the background per-photo loading work
+    private struct PhotoLoadResult {
+        let photoItem: PhotoItem
+        let thumbnail: NSImage?
+        let orientation: ImageOrientation
+        let exif: EXIFMetadata?
+        let xmp: XMPMetadata?
+    }
+
+    /// Loads thumbnails and metadata (EXIF + XMP sidecar) for photo items.
+    /// All file reads happen off the main thread; observable state is only
+    /// mutated back on the main actor.
     private func loadThumbnails(for photoItems: [PhotoItem]) {
         debugPrint("[PhotoGridVM] Loading thumbnails for \(photoItems.count) photos")
-        
+
         Task {
             let maxConcurrent = 4
             let chunks = photoItems.chunked(into: maxConcurrent)
-            
+
             for chunk in chunks {
-                await withTaskGroup(of: (PhotoItem, NSImage?, ImageOrientation).self) { group in
+                await withTaskGroup(of: PhotoLoadResult.self) { group in
                     for photoItem in chunk {
+                        let url = photoItem.url
                         group.addTask {
-                            let (thumbnail, orientation) = await self.extractThumbnail(from: photoItem.url)
-                            return (photoItem, thumbnail, orientation)
+                            let (thumbnail, orientation) = await self.extractThumbnail(from: url)
+                            let exif = PhotoItem.extractEXIFMetadata(from: url)
+                            let xmp = XMPSidecar.read(for: url)
+                            return PhotoLoadResult(photoItem: photoItem, thumbnail: thumbnail, orientation: orientation, exif: exif, xmp: xmp)
                         }
                     }
-                    
-                    for await (photoItem, thumbnail, orientation) in group {
-                        photoItem.thumbnail = thumbnail
-                        photoItem.orientation = orientation
-                        photoItem.isLoadingThumbnail = false
+
+                    for await result in group {
+                        result.photoItem.thumbnail = result.thumbnail
+                        result.photoItem.orientation = result.orientation
+                        result.photoItem.isLoadingThumbnail = false
+                        if let exif = result.exif {
+                            result.photoItem.exif = exif
+                        }
+                        if let xmp = result.xmp {
+                            result.photoItem.apply(xmp: xmp)
+                        }
                     }
                 }
             }
-            
+
             isLoading = false
             debugPrint("[PhotoGridVM] Thumbnails loaded")
         }

@@ -58,11 +58,10 @@ final class PhotoItem: Identifiable, Hashable {
     
     // MARK: - XMP Metadata Persistence
     
-    /// Loads rating / color label / flag from the XMP sidecar, if one exists.
-    /// Supports external sidecars (Lightroom / Camera Raw).
-    func loadMetadataFromXMP() {
-        guard let meta = XMPSidecar.read(for: url) else { return }
-        
+    /// Applies rating / color label / flag read from an XMP sidecar.
+    /// The read itself (`XMPSidecar.read`) is pure and can run off the main
+    /// thread; this application must happen where the UI observes the item.
+    func apply(xmp meta: XMPMetadata) {
         if let r = meta.rating, (0...5).contains(r) {
             rating = r
         }
@@ -105,12 +104,13 @@ final class PhotoItem: Identifiable, Hashable {
         persistMetadata()
     }
     
-    /// Loads EXIF metadata from the image file
-    func loadEXIFMetadata() {
+    /// Reads EXIF metadata from an image file. Pure function, safe to call
+    /// from a background task — assign the result to `exif` on the main actor.
+    nonisolated static func extractEXIFMetadata(from url: URL) -> EXIFMetadata? {
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any] else {
-            debugPrint("[PhotoItem] Failed to load EXIF metadata for: \(fileName)")
-            return
+            debugPrint("[PhotoItem] Failed to load EXIF metadata for: \(url.lastPathComponent)")
+            return nil
         }
         
         var metadata = EXIFMetadata()
@@ -164,8 +164,8 @@ final class PhotoItem: Identifiable, Hashable {
             }
         }
         
-        self.exif = metadata
-        debugPrint("[PhotoItem] Loaded EXIF metadata for: \(fileName)")
+        debugPrint("[PhotoItem] Loaded EXIF metadata for: \(url.lastPathComponent)")
+        return metadata
     }
     
     // MARK: - Hashable

@@ -31,7 +31,7 @@ enum XMPSidecar {
     // MARK: - Sidecar URL
     
     /// Returns the sidecar URL for a photo (e.g. `IMG_0001.CR3` -> `IMG_0001.xmp`).
-    static func sidecarURL(for photoURL: URL) -> URL {
+    nonisolated static func sidecarURL(for photoURL: URL) -> URL {
         photoURL.deletingPathExtension().appendingPathExtension("xmp")
     }
     
@@ -40,7 +40,7 @@ enum XMPSidecar {
     /// Reads rating / label / pick from a photo's sidecar, if it exists.
     /// Handles both attribute style (`xmp:Rating="4"`) and element style
     /// (`<xmp:Rating>4</xmp:Rating>`) so external files are supported.
-    static func read(for photoURL: URL) -> XMPMetadata? {
+    nonisolated static func read(for photoURL: URL) -> XMPMetadata? {
         let xmpURL = sidecarURL(for: photoURL)
         guard let text = try? String(contentsOf: xmpURL, encoding: .utf8) else {
             return nil
@@ -192,7 +192,7 @@ enum XMPSidecar {
     // MARK: - Regex Helpers (reading)
     
     /// Extracts a property value from raw XMP text, trying attribute then element form.
-    private static func value(in text: String, property: String) -> String? {
+    nonisolated private static func value(in text: String, property: String) -> String? {
         let escaped = NSRegularExpression.escapedPattern(for: property)
         // Attribute form: property="value"
         if let v = firstCapture(in: text, pattern: "\(escaped)\\s*=\\s*\"([^\"]*)\"") {
@@ -206,7 +206,7 @@ enum XMPSidecar {
     }
     
     /// Returns the first capture group of the first match for the pattern.
-    private static func firstCapture(in text: String, pattern: String) -> String? {
+    nonisolated private static func firstCapture(in text: String, pattern: String) -> String? {
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
             return nil
         }
