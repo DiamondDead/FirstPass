@@ -38,6 +38,14 @@ struct PhotoGridView: View {
                         get: { viewModel.selectedColorLabels },
                         set: { viewModel.selectedColorLabels = $0 }
                     ),
+                    sortKey: Binding(
+                        get: { viewModel.sortKey },
+                        set: { viewModel.sortKey = $0 }
+                    ),
+                    sortAscending: Binding(
+                        get: { viewModel.sortAscending },
+                        set: { viewModel.sortAscending = $0 }
+                    ),
                     totalCount: viewModel.totalCount,
                     pickCount: viewModel.pickCount,
                     rejectCount: viewModel.rejectCount,

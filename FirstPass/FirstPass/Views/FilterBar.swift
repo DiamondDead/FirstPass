@@ -18,6 +18,8 @@ struct FilterBar: View {
     @Binding var filterFlag: FilterFlag
     @Binding var minStars: Int
     @Binding var selectedColorLabels: Set<ColorLabel>
+    @Binding var sortKey: SortKey
+    @Binding var sortAscending: Bool
     let totalCount: Int
     let pickCount: Int
     let rejectCount: Int
@@ -59,6 +61,52 @@ struct FilterBar: View {
             
             // Color label filters
             ColorLabelChips(selectedLabels: $selectedColorLabels)
+
+            Divider()
+                .frame(height: 16)
+
+            // Sort menu — selecting the active key flips the direction
+            Menu {
+                ForEach(SortKey.allCases) { key in
+                    Button(action: {
+                        if sortKey == key {
+                            sortAscending.toggle()
+                        } else {
+                            sortKey = key
+                            sortAscending = true
+                        }
+                    }) {
+                        HStack {
+                            Text(key.label)
+                            if sortKey == key {
+                                Image(systemName: sortAscending ? "arrow.up" : "arrow.down")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: sortAscending ? "arrow.up.arrow.down" : "arrow.up.arrow.down")
+                        .font(.system(size: 10))
+                    Text(sortKey.label)
+                        .font(.system(size: 11.5, weight: .medium))
+                    Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                .foregroundStyle(Color.fpTextSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.fpChipBackground)
+                .cornerRadius(999)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 999)
+                        .stroke(Color.fpBorder, lineWidth: 0.5)
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Trier par \(sortKey.label.lowercased())")
             
             // Create folder button — always visible so a new folder can be created at any time.
             // Shows the selected count only when photos are selected (those would be moved into it).
@@ -235,11 +283,15 @@ struct ColorLabelChips: View {
     @Previewable @State var filterFlag: FilterFlag = .all
     @Previewable @State var minStars: Int = 0
     @Previewable @State var selectedColorLabels: Set<ColorLabel> = []
+    @Previewable @State var sortKey: SortKey = .name
+    @Previewable @State var sortAscending = true
     
     return FilterBar(
         filterFlag: $filterFlag,
         minStars: $minStars,
         selectedColorLabels: $selectedColorLabels,
+        sortKey: $sortKey,
+        sortAscending: $sortAscending,
         totalCount: 150,
         pickCount: 45,
         rejectCount: 12,

@@ -27,6 +27,8 @@ struct EXIFMetadata {
     var shutterSpeed: String = ""
     var iso: String = ""
     var date: String = ""
+    /// Capture date (EXIF DateTimeOriginal, fallback TIFF DateTime)
+    var captureDate: Date?
 }
 
 /// Represents a photo file with its preview thumbnail
@@ -49,6 +51,11 @@ final class PhotoItem: Identifiable, Hashable {
     var rating: Int = 0
     var colorLabel: ColorLabel = .none
     var exif: EXIFMetadata = EXIFMetadata()
+    /// File system date, used as sort fallback when EXIF has no capture date
+    var fileDate: Date = .distantPast
+
+    /// Date used for date sorting
+    var sortDate: Date { exif.captureDate ?? fileDate }
     
     init(url: URL, fileName: String) {
         self.url = url
@@ -152,16 +159,17 @@ final class PhotoItem: Identifiable, Hashable {
             }
         }
         
-        // Extract TIFF data for date
-        if let tiffDict = properties["{TIFF}"] as? [String: Any],
-           let dateTime = tiffDict["DateTime"] as? String {
-            // Format date from "2024:02:15 14:30:45" to "15/02/2024"
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-            if let date = dateFormatter.date(from: dateTime) {
-                dateFormatter.dateFormat = "dd/MM/yyyy"
-                metadata.date = dateFormatter.string(from: date)
-            }
+        // Capture date: prefer EXIF DateTimeOriginal, fallback TIFF DateTime
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        let exifDict = properties["{Exif}"] as? [String: Any]
+        let tiffDict = properties["{TIFF}"] as? [String: Any]
+        let rawDate = (exifDict?["DateTimeOriginal"] as? String) ?? (tiffDict?["DateTime"] as? String)
+        if let rawDate, let date = dateFormatter.date(from: rawDate) {
+            metadata.captureDate = date
+            // Format date from "2024:02:15 14:30:45" to "15/02/2024" for display
+            dateFormatter.dateFormat = "dd/MM/yyyy"
+            metadata.date = dateFormatter.string(from: date)
         }
         
         debugPrint("[PhotoItem] Loaded EXIF metadata for: \(url.lastPathComponent)")

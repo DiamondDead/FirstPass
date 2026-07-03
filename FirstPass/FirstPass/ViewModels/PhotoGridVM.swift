@@ -38,14 +38,18 @@ final class PhotoGridVM {
     var filterFlag: FilterFlag = .all
     var minStars: Int = 0
     var selectedColorLabels: Set<ColorLabel> = []
+
+    // Sort state
+    var sortKey: SortKey = .name
+    var sortAscending: Bool = true
     
     // MARK: - Computed Properties
     
-    /// Photos filtered by current filter settings
+    /// Photos filtered by current filter settings, in the selected sort order
     var filteredPhotos: [PhotoItem] {
         let hasColorLabels = !selectedColorLabels.isEmpty
         
-        return photos.filter { photo in
+        let result = photos.filter { photo in
             // Filter by flag
             switch filterFlag {
             case .all:
@@ -65,6 +69,27 @@ final class PhotoGridVM {
             if hasColorLabels && !selectedColorLabels.contains(photo.colorLabel) { return false }
             
             return true
+        }
+
+        return result.sorted { a, b in
+            let ordered: Bool
+            switch sortKey {
+            case .name:
+                ordered = a.fileName.localizedCaseInsensitiveCompare(b.fileName) == .orderedAscending
+            case .date:
+                if a.sortDate != b.sortDate {
+                    ordered = a.sortDate < b.sortDate
+                } else {
+                    ordered = a.fileName.localizedCaseInsensitiveCompare(b.fileName) == .orderedAscending
+                }
+            case .rating:
+                if a.rating != b.rating {
+                    ordered = a.rating < b.rating
+                } else {
+                    ordered = a.fileName.localizedCaseInsensitiveCompare(b.fileName) == .orderedAscending
+                }
+            }
+            return sortAscending ? ordered : !ordered
         }
     }
     
@@ -458,6 +483,7 @@ final class PhotoGridVM {
         let orientation: ImageOrientation
         let exif: EXIFMetadata?
         let xmp: XMPMetadata?
+        let fileDate: Date?
     }
 
     /// Loads thumbnails and metadata (EXIF + XMP sidecar) for photo items.
@@ -478,7 +504,9 @@ final class PhotoGridVM {
                             let (thumbnail, orientation) = await self.extractThumbnail(from: url)
                             let exif = PhotoItem.extractEXIFMetadata(from: url)
                             let xmp = XMPSidecar.read(for: url)
-                            return PhotoLoadResult(photoItem: photoItem, thumbnail: thumbnail, orientation: orientation, exif: exif, xmp: xmp)
+                            let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .creationDateKey])
+                            let fileDate = values?.creationDate ?? values?.contentModificationDate
+                            return PhotoLoadResult(photoItem: photoItem, thumbnail: thumbnail, orientation: orientation, exif: exif, xmp: xmp, fileDate: fileDate)
                         }
                     }
 
@@ -488,6 +516,9 @@ final class PhotoGridVM {
                         result.photoItem.isLoadingThumbnail = false
                         if let exif = result.exif {
                             result.photoItem.exif = exif
+                        }
+                        if let fileDate = result.fileDate {
+                            result.photoItem.fileDate = fileDate
                         }
                         if let xmp = result.xmp {
                             result.photoItem.apply(xmp: xmp)
@@ -613,5 +644,23 @@ final class PhotoGridVM {
         }
         
         return .landscape
+    }
+}
+
+// MARK: - Sort Key
+
+enum SortKey: String, CaseIterable, Identifiable {
+    case name
+    case date
+    case rating
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .name: return "Nom"
+        case .date: return "Date"
+        case .rating: return "Note"
+        }
     }
 }
