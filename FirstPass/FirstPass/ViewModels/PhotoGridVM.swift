@@ -166,14 +166,17 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Deselected all photos")
     }
     
-    /// Selects all photos in the grid
+    /// Selects all photos currently visible in the grid (respects active
+    /// filters — photos hidden by a filter must never enter the selection,
+    /// otherwise bulk actions like "move to folder" would affect them).
     func selectAll() {
-        for photo in photos {
+        let visible = filteredPhotos
+        for photo in visible {
             photo.isSelected = true
         }
         // Set anchor to the last photo so arrow navigation continues from there
-        activePhotoForNavigation = photos.last
-        debugPrint("[PhotoGridVM] Selected all \(photos.count) photos")
+        activePhotoForNavigation = visible.last
+        debugPrint("[PhotoGridVM] Selected all \(visible.count) visible photos")
     }
     
     /// Toggles selection state of a photo for multi-select (Cmd+click)
@@ -189,121 +192,135 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Toggled selection for photo: \(photo.fileName) - selected: \(photo.isSelected), anchor: \(activePhotoForNavigation?.fileName ?? "none")")
     }
     
-    /// Selects photo to the left with Cmd+left arrow
+    /// Selects photo to the left with Cmd+left arrow (in filtered order)
     func selectPhotoToLeft() {
+        let visible = filteredPhotos
         guard let activePhoto = activePhotoForNavigation,
-              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }),
+              let currentIndex = visible.firstIndex(where: { $0.id == activePhoto.id }),
               currentIndex > 0 else {
             debugPrint("[PhotoGridVM] Cannot select photo to left: no active photo or at start")
             return
         }
-        
-        let leftPhoto = photos[currentIndex - 1]
+
+        let leftPhoto = visible[currentIndex - 1]
         leftPhoto.isSelected = true
         activePhotoForNavigation = leftPhoto
         debugPrint("[PhotoGridVM] Selected photo to left: \(leftPhoto.fileName)")
     }
-    
-    /// Selects photo to the right with Cmd+right arrow
+
+    /// Selects photo to the right with Cmd+right arrow (in filtered order)
     func selectPhotoToRight() {
+        let visible = filteredPhotos
         guard let activePhoto = activePhotoForNavigation,
-              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }),
-              currentIndex < photos.count - 1 else {
+              let currentIndex = visible.firstIndex(where: { $0.id == activePhoto.id }),
+              currentIndex < visible.count - 1 else {
             debugPrint("[PhotoGridVM] Cannot select photo to right: no active photo or at end")
             return
         }
-        
-        let rightPhoto = photos[currentIndex + 1]
+
+        let rightPhoto = visible[currentIndex + 1]
         rightPhoto.isSelected = true
         activePhotoForNavigation = rightPhoto
         debugPrint("[PhotoGridVM] Selected photo to right: \(rightPhoto.fileName)")
     }
-    
-    /// Selects entire row below with Cmd+down arrow
+
+    /// Selects entire row below with Cmd+down arrow (rows of the filtered grid)
     func selectRowBelow() {
+        let visible = filteredPhotos
         guard let activePhoto = activePhotoForNavigation,
-              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }) else {
+              let currentIndex = visible.firstIndex(where: { $0.id == activePhoto.id }) else {
             debugPrint("[PhotoGridVM] Cannot select row below: no active photo")
             return
         }
-        
+
         let currentRow = currentIndex / gridColumns
         let targetRow = currentRow + 1
         let startIndex = targetRow * gridColumns
-        let endIndex = min(startIndex + gridColumns, photos.count)
-        
-        guard startIndex < photos.count else {
+        let endIndex = min(startIndex + gridColumns, visible.count)
+
+        guard startIndex < visible.count else {
             debugPrint("[PhotoGridVM] Cannot select row below: already at last row")
             return
         }
-        
+
         for i in startIndex..<endIndex {
-            photos[i].isSelected = true
+            visible[i].isSelected = true
         }
-        
+
         // Set active navigation point to the first photo in the new row
-        activePhotoForNavigation = photos[startIndex]
+        activePhotoForNavigation = visible[startIndex]
         debugPrint("[PhotoGridVM] Selected row \(targetRow) with \(endIndex - startIndex) photos")
     }
-    
-    /// Selects entire row above with Cmd+up arrow
+
+    /// Selects entire row above with Cmd+up arrow (rows of the filtered grid)
     func selectRowAbove() {
+        let visible = filteredPhotos
         guard let activePhoto = activePhotoForNavigation,
-              let currentIndex = photos.firstIndex(where: { $0.id == activePhoto.id }) else {
+              let currentIndex = visible.firstIndex(where: { $0.id == activePhoto.id }) else {
             debugPrint("[PhotoGridVM] Cannot select row above: no active photo")
             return
         }
-        
+
         let currentRow = currentIndex / gridColumns
         let targetRow = currentRow - 1
-        
+
         guard targetRow >= 0 else {
             debugPrint("[PhotoGridVM] Cannot select row above: already at first row")
             return
         }
-        
+
         let startIndex = targetRow * gridColumns
-        let endIndex = min(startIndex + gridColumns, photos.count)
-        
+        let endIndex = min(startIndex + gridColumns, visible.count)
+
         for i in startIndex..<endIndex {
-            photos[i].isSelected = true
+            visible[i].isSelected = true
         }
-        
+
         // Set active navigation point to the first photo in the new row
-        activePhotoForNavigation = photos[startIndex]
+        activePhotoForNavigation = visible[startIndex]
         debugPrint("[PhotoGridVM] Selected row \(targetRow) with \(endIndex - startIndex) photos")
     }
-    
-    /// Navigates to the previous photo
+
+    /// Navigates to the previous photo (in filtered order)
     func previousPhoto() {
         guard let current = selectedPhoto,
-              let currentIndex = photos.firstIndex(where: { $0.id == current.id }),
-              currentIndex > 0 else {
+              let target = neighborPhoto(of: current, forward: false) else {
             return
         }
-        selectedPhoto = photos[currentIndex - 1]
-        debugPrint("[PhotoGridVM] Previous photo: \(selectedPhoto?.fileName ?? "none")")
-        
-        // Load full-quality image for non-RAW formats
-        if let photo = selectedPhoto {
-            loadFullImage(for: photo)
-        }
+        selectedPhoto = target
+        debugPrint("[PhotoGridVM] Previous photo: \(target.fileName)")
+        loadFullImage(for: target)
     }
-    
-    /// Navigates to the next photo
+
+    /// Navigates to the next photo (in filtered order)
     func nextPhoto() {
         guard let current = selectedPhoto,
-              let currentIndex = photos.firstIndex(where: { $0.id == current.id }),
-              currentIndex < photos.count - 1 else {
+              let target = neighborPhoto(of: current, forward: true) else {
             return
         }
-        selectedPhoto = photos[currentIndex + 1]
-        debugPrint("[PhotoGridVM] Next photo: \(selectedPhoto?.fileName ?? "none")")
-        
-        // Load full-quality image for non-RAW formats
-        if let photo = selectedPhoto {
-            loadFullImage(for: photo)
+        selectedPhoto = target
+        debugPrint("[PhotoGridVM] Next photo: \(target.fileName)")
+        loadFullImage(for: target)
+    }
+
+    /// Returns the neighbor of a photo in the filtered list. When the current
+    /// photo just dropped out of the filter (e.g. flagged Reject while the
+    /// Pick filter is active), falls back to the nearest photo still visible.
+    func neighborPhoto(of photo: PhotoItem, forward: Bool) -> PhotoItem? {
+        let visible = filteredPhotos
+        if let index = visible.firstIndex(where: { $0.id == photo.id }) {
+            let target = forward ? index + 1 : index - 1
+            guard visible.indices.contains(target) else { return nil }
+            return visible[target]
         }
+        // Current photo is no longer visible: walk the unfiltered order to
+        // find the closest photo that is still in the filtered set.
+        guard let position = photos.firstIndex(where: { $0.id == photo.id }) else { return nil }
+        let visibleIDs = Set(visible.map { $0.id })
+        let searchRange = forward
+            ? Array(photos[(position + 1)...])
+            : photos[..<position].reversed().map { $0 }
+        return searchRange.first(where: { visibleIDs.contains($0.id) })
     }
     
     /// Sets the flag of the currently selected photo to Pick

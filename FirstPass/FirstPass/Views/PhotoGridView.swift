@@ -14,8 +14,10 @@ struct PhotoGridView: View {
     let folderTreeVM: FolderTreeVM
     @State private var showCreateFolderDialog = false
     
-    // Grid configuration
-    private let gridItem = GridItem(.adaptive(minimum: 230), spacing: 16)
+    // Grid configuration — itemMinWidth must match the GridItem minimum,
+    // gridColumns is derived from it for keyboard row selection
+    private static let itemMinWidth: CGFloat = 230
+    private let gridItem = GridItem(.adaptive(minimum: itemMinWidth), spacing: 16)
     private let itemSpacing: CGFloat = 16
     private let padding: CGFloat = 18 * 2 // horizontal padding on both sides
     
@@ -221,11 +223,12 @@ struct PhotoGridView: View {
         viewModel.photos.filter { $0.isSelected }.count
     }
     
-    /// Updates the grid columns count based on available width
+    /// Updates the grid columns count based on available width, using the
+    /// same fitting rule as LazyVGrid's adaptive layout (min item width 230,
+    /// spacing 16) so row-based selection matches what is actually displayed.
     private func updateGridColumns(width: CGFloat) {
         let availableWidth = width - padding
-        let itemMinWidth: CGFloat = 150
-        let calculatedColumns = max(1, Int(availableWidth / (itemMinWidth + itemSpacing)))
+        let calculatedColumns = max(1, Int((availableWidth + itemSpacing) / (Self.itemMinWidth + itemSpacing)))
         viewModel.gridColumns = calculatedColumns
         debugPrint("[PhotoGridView] Updated grid columns to: \(calculatedColumns) for width: \(width)")
     }

@@ -241,8 +241,8 @@ struct PhotoViewerView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             
                             // Counter chip
-                            if let currentIndex = viewModel.photos.firstIndex(where: { $0.id == photo.id }) {
-                                counterChip(current: currentIndex + 1, total: viewModel.photos.count)
+                            if let currentIndex = viewModel.filteredPhotos.firstIndex(where: { $0.id == photo.id }) {
+                                counterChip(current: currentIndex + 1, total: viewModel.filteredPhotos.count)
                                     .padding(.top, 14)
                                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             }
@@ -388,7 +388,7 @@ struct PhotoViewerView: View {
     private var filmstrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                ForEach(viewModel.photos) { thumbPhoto in
+                ForEach(viewModel.filteredPhotos) { thumbPhoto in
                     Button(action: {
                         viewModel.selectPhoto(thumbPhoto)
                     }) {
@@ -462,19 +462,13 @@ struct PhotoViewerView: View {
     }
     
     private func canGoPrevious() -> Bool {
-        guard let current = viewModel.selectedPhoto,
-              let currentIndex = viewModel.photos.firstIndex(where: { $0.id == current.id }) else {
-            return false
-        }
-        return currentIndex > 0
+        guard let current = viewModel.selectedPhoto else { return false }
+        return viewModel.neighborPhoto(of: current, forward: false) != nil
     }
     
     private func canGoNext() -> Bool {
-        guard let current = viewModel.selectedPhoto,
-              let currentIndex = viewModel.photos.firstIndex(where: { $0.id == current.id }) else {
-            return false
-        }
-        return currentIndex < viewModel.photos.count - 1
+        guard let current = viewModel.selectedPhoto else { return false }
+        return viewModel.neighborPhoto(of: current, forward: true) != nil
     }
 }
 
