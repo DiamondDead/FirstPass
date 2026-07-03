@@ -71,9 +71,34 @@ struct KeyboardShortcutHandler: NSViewRepresentable {
         override func keyDown(with event: NSEvent) {
             let isCmdPressed = event.modifierFlags.contains(.command)
             
-            // Handle character keys for flags (P, X, U), ratings (1-5), color labels (6-9)
-            if let characters = event.charactersIgnoringModifiers, characters.count == 1 {
-                let char = characters.lowercased()
+            // Ratings (1-5), color labels (6-9) and clear (0) — matched on the
+            // physical digit row so they work on AZERTY without Shift.
+            if !isCmdPressed, let digit = KeyboardLayout.digit(from: event) {
+                switch digit {
+                case 1...5:
+                    setRatingAction?(digit)
+                    return
+                case 6:
+                    setColorLabelAction?(.red)
+                    return
+                case 7:
+                    setColorLabelAction?(.yellow)
+                    return
+                case 8:
+                    setColorLabelAction?(.green)
+                    return
+                case 9:
+                    setColorLabelAction?(.blue)
+                    return
+                default: // 0
+                    clearColorLabelAction?()
+                    return
+                }
+            }
+
+            // Flags (P, X, U) — matched on the typed character, layout-independent.
+            // Cmd guard keeps system shortcuts like Cmd+P working.
+            if !isCmdPressed, let char = KeyboardLayout.lowercasedChar(from: event) {
                 switch char {
                 case "p":
                     flagPickAction?()
@@ -83,25 +108,6 @@ struct KeyboardShortcutHandler: NSViewRepresentable {
                     return
                 case "u":
                     flagUnflaggedAction?()
-                    return
-                case "1", "2", "3", "4", "5":
-                    let rating = Int(char) ?? 1
-                    setRatingAction?(rating)
-                    return
-                case "6":
-                    setColorLabelAction?(.red)
-                    return
-                case "7":
-                    setColorLabelAction?(.yellow)
-                    return
-                case "8":
-                    setColorLabelAction?(.green)
-                    return
-                case "9":
-                    setColorLabelAction?(.blue)
-                    return
-                case "0":
-                    clearColorLabelAction?()
                     return
                 default:
                     break

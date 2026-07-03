@@ -433,35 +433,45 @@ struct KeyboardMonitor: NSViewRepresentable {
         context.coordinator.monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak coordinator = context.coordinator] event in
             guard let coordinator else { return event }
             let isCmdPressed = event.modifierFlags.contains(.command)
-            
-            // Handle character keys for ratings (1-5) and color labels (6-9)
-            if let characters = event.charactersIgnoringModifiers, characters.count == 1, !isCmdPressed {
-                let char = characters.lowercased()
-                switch char {
-                case "1", "2", "3", "4", "5":
-                    let rating = Int(char) ?? 1
-                    coordinator.setRatingAction?(rating)
+
+            // Ratings (1-5), color labels (6-9) and clear (0) — matched on the
+            // physical digit row so they work on AZERTY without Shift.
+            if !isCmdPressed, let digit = KeyboardLayout.digit(from: event) {
+                switch digit {
+                case 1...5:
+                    coordinator.setRatingAction?(digit)
                     return nil
-                case "6":
+                case 6:
                     coordinator.setColorLabelAction?(.red)
                     return nil
-                case "7":
+                case 7:
                     coordinator.setColorLabelAction?(.yellow)
                     return nil
-                case "8":
+                case 8:
                     coordinator.setColorLabelAction?(.green)
                     return nil
-                case "9":
+                case 9:
                     coordinator.setColorLabelAction?(.blue)
                     return nil
-                case "0":
+                case 0:
                     coordinator.clearColorLabelAction?()
                     return nil
                 default:
                     break
                 }
             }
-            
+
+            // Select all — matched on the typed character ("a"), never on keyCode.
+            // Must be consumed even when the viewer is open: on AZERTY, macOS
+            // remaps menu equivalents by physical position and an unhandled
+            // Cmd+A would trigger the menu's Quit (Cmd+Q).
+            if isCmdPressed, KeyboardLayout.lowercasedChar(from: event) == "a" {
+                if !coordinator.isViewingPhoto {
+                    coordinator.cmdAAction()
+                }
+                return nil
+            }
+
             switch event.keyCode {
             case 123 where isCmdPressed: // Cmd + Left arrow
                 coordinator.cmdLeftArrowAction()
@@ -474,11 +484,6 @@ struct KeyboardMonitor: NSViewRepresentable {
                 return nil
             case 126 where isCmdPressed: // Cmd + Up arrow
                 coordinator.cmdUpArrowAction()
-                return nil
-            case 0 where isCmdPressed: // Cmd + A (keyCode 0 is 'a')
-                // Don't intercept Cmd+A when viewer is open (might want it for image actions later)
-                guard !coordinator.isViewingPhoto else { return event }
-                coordinator.cmdAAction()
                 return nil
             case 53: // Escape (no Cmd)
                 // When viewer is open, let the viewer's own escape handler close it
