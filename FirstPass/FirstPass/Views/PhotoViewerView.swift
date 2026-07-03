@@ -157,8 +157,17 @@ struct PhotoViewerView: View {
     
     var body: some View {
         ZStack {
-            // Semi-transparent dark background
-            Color.black.opacity(0.7).ignoresSafeArea()
+            // Semi-transparent dark background.
+            // A tap in this dark area (outside the image/controls) closes the viewer,
+            // mirroring the Escape shortcut. Image and buttons sit above and consume their own taps.
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Debug: log background tap that dismisses the viewer
+                    debugPrint("[PhotoViewerView] Dark background tapped — returning to grid")
+                    viewModel.deselectPhoto()
+                }
             
             if let photo = viewModel.selectedPhoto {
                 VStack(spacing: 0) {
