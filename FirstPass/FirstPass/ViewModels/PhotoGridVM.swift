@@ -204,6 +204,27 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Selected all \(visible.count) visible photos")
     }
     
+    /// Selects the range between the navigation anchor and the given photo
+    /// (Shift+click), in the visible (filtered + sorted) order. Without an
+    /// anchor, behaves like a simple additive selection.
+    func selectRange(to photo: PhotoItem) {
+        let visible = filteredPhotos
+        guard let anchor = activePhotoForNavigation,
+              let anchorIndex = visible.firstIndex(where: { $0.id == anchor.id }),
+              let targetIndex = visible.firstIndex(where: { $0.id == photo.id }) else {
+            photo.isSelected = true
+            activePhotoForNavigation = photo
+            debugPrint("[PhotoGridVM] Range select without anchor: selected \(photo.fileName)")
+            return
+        }
+
+        let range = min(anchorIndex, targetIndex)...max(anchorIndex, targetIndex)
+        for index in range {
+            visible[index].isSelected = true
+        }
+        debugPrint("[PhotoGridVM] Selected range of \(range.count) photos (anchor: \(anchor.fileName))")
+    }
+
     /// Toggles selection state of a photo for multi-select (Cmd+click)
     func toggleSelection(_ photo: PhotoItem) {
         photo.isSelected.toggle()

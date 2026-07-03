@@ -130,6 +130,9 @@ struct PhotoGridView: View {
                                         onCmdTap: {
                                             viewModel.toggleSelection(photo)
                                         },
+                                        onShiftTap: {
+                                            viewModel.selectRange(to: photo)
+                                        },
                                         onDragPhotos: {
                                             // Drag the whole selection if this photo is selected, else just this one
                                             let urls = photo.isSelected
@@ -248,6 +251,7 @@ struct PhotoThumbnailView: View {
     let isSelected: Bool
     let onTap: () -> Void
     let onCmdTap: () -> Void
+    let onShiftTap: () -> Void
     // Returns the file URLs to drag (selection if this photo is selected, otherwise just this one)
     let onDragPhotos: () -> [URL]
     
@@ -300,8 +304,11 @@ struct PhotoThumbnailView: View {
             isHovering = hovering
         }
         .onTapGesture {
-            // Use currentEvent modifiers for accurate Cmd detection at click time
-            if NSApp.currentEvent?.modifierFlags.contains(.command) == true {
+            // Use currentEvent modifiers for accurate detection at click time
+            let modifiers = NSApp.currentEvent?.modifierFlags ?? []
+            if modifiers.contains(.shift) {
+                onShiftTap()
+            } else if modifiers.contains(.command) {
                 onCmdTap()
             } else {
                 onTap()
