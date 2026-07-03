@@ -31,6 +31,10 @@ struct FilterBar: View {
     
     var body: some View {
         HStack(spacing: 16) {
+            // Left controls scroll horizontally when the window is narrow,
+            // instead of compressing the segmented control
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
             // Segmented control for flags
             HStack(spacing: 2) {
                 ForEach(FilterFlag.allCases, id: \.self) { flag in
@@ -141,7 +145,7 @@ struct FilterBar: View {
                     HStack(spacing: 6) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 11))
-                        Text("Exporter les picks")
+                        Text("Exporter")
                             .font(.system(size: 11.5, weight: .medium))
                         Text("(\(pickCount))")
                             .font(.system(size: 10.5))
@@ -160,9 +164,10 @@ struct FilterBar: View {
                 .buttonStyle(.plain)
             }
 
-            Divider()
-                .frame(height: 16)
-            
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+
             Spacer()
             
             // Count display
