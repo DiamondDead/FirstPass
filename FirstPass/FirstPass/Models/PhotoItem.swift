@@ -8,6 +8,7 @@
 import Foundation
 import AppKit
 import ImageIO
+import SwiftUI
 
 // MARK: - Image Orientation Enum
 
@@ -196,6 +197,18 @@ enum ColorLabel: String, CaseIterable {
     case blue = "Blue"
     case purple = "Purple"
     
+    /// Display color for the label (single source of truth for all views).
+    var color: Color {
+        switch self {
+        case .none: return .gray
+        case .red: return Color(red: 1.0, green: 0.2, blue: 0.2)
+        case .yellow: return Color(red: 1.0, green: 0.84, blue: 0.0)
+        case .green: return Color(red: 0.2, green: 0.8, blue: 0.4)
+        case .blue: return Color(red: 0.2, green: 0.6, blue: 1.0)
+        case .purple: return Color(red: 0.6, green: 0.4, blue: 1.0)
+        }
+    }
+
     /// Maps an Adobe `xmp:Label` string to a color label (case-insensitive).
     /// Returns nil for unknown / custom labels so they don't override state.
     init?(xmpLabel: String) {

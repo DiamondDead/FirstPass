@@ -26,15 +26,6 @@ struct FilterBar: View {
     let selectedPhotoCount: Int
     let onCreateFolder: () -> Void
     
-    // Color label hex values from web design
-    private let colorLabelHex: [ColorLabel: Color] = [
-        .red: Color(red: 1.0, green: 0.2, blue: 0.2),
-        .yellow: Color(red: 1.0, green: 0.84, blue: 0.0),
-        .green: Color(red: 0.2, green: 0.8, blue: 0.4),
-        .blue: Color(red: 0.2, green: 0.6, blue: 1.0),
-        .purple: Color(red: 0.6, green: 0.4, blue: 1.0)
-    ]
-    
     var body: some View {
         HStack(spacing: 16) {
             // Segmented control for flags
@@ -67,10 +58,7 @@ struct FilterBar: View {
                 .frame(height: 16)
             
             // Color label filters
-            ColorLabelChips(
-                selectedLabels: $selectedColorLabels,
-                colorHex: colorLabelHex
-            )
+            ColorLabelChips(selectedLabels: $selectedColorLabels)
             
             // Create folder button — always visible so a new folder can be created at any time.
             // Shows the selected count only when photos are selected (those would be moved into it).
@@ -208,7 +196,6 @@ struct StarFilterChip: View {
 
 struct ColorLabelChips: View {
     @Binding var selectedLabels: Set<ColorLabel>
-    let colorHex: [ColorLabel: Color]
     
     var body: some View {
         HStack(spacing: 4) {
@@ -222,7 +209,7 @@ struct ColorLabelChips: View {
                 }) {
                     let isSelected = selectedLabels.contains(label)
                     Circle()
-                        .fill(colorHex[label] ?? .gray)
+                        .fill(label.color)
                         .frame(width: 14, height: 14)
                         .opacity(isSelected ? 1.0 : 0.35)
                         .overlay(

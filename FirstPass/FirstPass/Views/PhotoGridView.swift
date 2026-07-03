@@ -240,15 +240,6 @@ struct PhotoThumbnailView: View {
     // Returns the file URLs to drag (selection if this photo is selected, otherwise just this one)
     let onDragPhotos: () -> [URL]
     
-    // Color label hex values from web design
-    private let colorLabelHex: [ColorLabel: Color] = [
-        .red: Color(red: 1.0, green: 0.2, blue: 0.2),
-        .yellow: Color(red: 1.0, green: 0.84, blue: 0.0),
-        .green: Color(red: 0.2, green: 0.8, blue: 0.4),
-        .blue: Color(red: 0.2, green: 0.6, blue: 1.0),
-        .purple: Color(red: 0.6, green: 0.4, blue: 1.0)
-    ]
-    
     @State private var isHovering = false
     
     var body: some View {
@@ -265,7 +256,7 @@ struct PhotoThumbnailView: View {
             // Color label spine (left edge)
             if photo.colorLabel != .none {
                 VStack {
-                    colorLabelHex[photo.colorLabel] ?? .gray
+                    photo.colorLabel.color
                 }
                 .frame(width: 3)
                 .frame(maxHeight: .infinity)

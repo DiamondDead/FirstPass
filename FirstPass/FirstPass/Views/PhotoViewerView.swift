@@ -152,22 +152,12 @@ struct KeyboardShortcutHandler: NSViewRepresentable {
 struct PhotoViewerView: View {
     let viewModel: PhotoGridVM
     
-    // Color label hex values from web design
-    private let colorLabelHex: [ColorLabel: Color] = [
-        .red: Color(red: 1.0, green: 0.2, blue: 0.2),
-        .yellow: Color(red: 1.0, green: 0.84, blue: 0.0),
-        .green: Color(red: 0.2, green: 0.8, blue: 0.4),
-        .blue: Color(red: 0.2, green: 0.6, blue: 1.0),
-        .purple: Color(red: 0.6, green: 0.4, blue: 1.0)
-    ]
-    
     var body: some View {
         ZStack {
-            // Dark background — opaque so the viewer stays dark even when the
-            // app runs in light theme (intentional, to not bias color perception).
+            // Semi-transparent dark background.
             // A tap in this dark area (outside the image/controls) closes the viewer,
             // mirroring the Escape shortcut. Image and buttons sit above and consume their own taps.
-            Color(red: 0.05, green: 0.05, blue: 0.055)
+            Color.black.opacity(0.7)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -223,7 +213,7 @@ struct PhotoViewerView: View {
                             // Color label indicator
                             if photo.colorLabel != .none {
                                 Circle()
-                                    .fill(colorLabelHex[photo.colorLabel] ?? .gray)
+                                    .fill(photo.colorLabel.color)
                                     .frame(width: 12, height: 12)
                                     .shadow(color: .black.opacity(0.4), radius: 2, x: 0, y: 2)
                                     .padding(.top, 14)
@@ -304,9 +294,6 @@ struct PhotoViewerView: View {
                 clearColorLabelAction: { viewModel.clearColorLabel() }
             )
         )
-        // The viewer is always dark regardless of the app theme, so the
-        // dynamic fp* colors used inside resolve to their dark variants.
-        .environment(\.colorScheme, .dark)
     }
     
     // MARK: - Helper Methods
@@ -410,7 +397,7 @@ struct PhotoViewerView: View {
                                 // Color label spine
                                 if thumbPhoto.colorLabel != .none {
                                     VStack {
-                                        colorLabelHex[thumbPhoto.colorLabel] ?? .gray
+                                        thumbPhoto.colorLabel.color
                                     }
                                     .frame(width: 2)
                                     .frame(maxHeight: .infinity)
@@ -550,15 +537,6 @@ struct TaggingBar: View {
     let photo: PhotoItem
     let viewModel: PhotoGridVM
     
-    // Color label hex values
-    private let colorLabelHex: [ColorLabel: Color] = [
-        .red: Color(red: 1.0, green: 0.2, blue: 0.2),
-        .yellow: Color(red: 1.0, green: 0.84, blue: 0.0),
-        .green: Color(red: 0.2, green: 0.8, blue: 0.4),
-        .blue: Color(red: 0.2, green: 0.6, blue: 1.0),
-        .purple: Color(red: 0.6, green: 0.4, blue: 1.0)
-    ]
-    
     var body: some View {
         HStack(spacing: 22) {
             // Flag buttons
@@ -674,7 +652,7 @@ struct TaggingBar: View {
         }) {
             VStack(spacing: 3) {
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(colorLabelHex[label] ?? .gray)
+                    .fill(label.color)
                     .frame(width: 16, height: 16)
                     .opacity(photo.colorLabel == label ? 1.0 : (photo.colorLabel == .none ? 0.85 : 0.35))
                     .overlay(
