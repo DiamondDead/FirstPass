@@ -11,7 +11,20 @@ struct TitleBar: View {
     let folderPath: [String]
     let sidebarVisible: Bool
     let onToggleSidebar: () -> Void
-    
+    @AppStorage(AppearanceMode.storageKey) private var appearanceModeRaw = AppearanceMode.system.rawValue
+
+    private var appearanceMode: AppearanceMode {
+        AppearanceMode(rawValue: appearanceModeRaw) ?? .system
+    }
+
+    private var appearanceIcon: String {
+        switch appearanceMode {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max"
+        case .dark: return "moon"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             // Sidebar toggle button
@@ -38,6 +51,29 @@ struct TitleBar: View {
             }
             
             Spacer()
+
+            // Theme switcher — cycles through the same modes as Preferences (Cmd+,)
+            Menu {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Button(action: { appearanceModeRaw = mode.rawValue }) {
+                        HStack {
+                            Text(mode.label)
+                            if mode == appearanceMode {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Image(systemName: appearanceIcon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.fpTextSecondary)
+                    .frame(width: 28, height: 28)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Thème : \(appearanceMode.label)")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
