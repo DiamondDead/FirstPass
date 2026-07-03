@@ -163,10 +163,11 @@ struct PhotoViewerView: View {
     
     var body: some View {
         ZStack {
-            // Semi-transparent dark background.
+            // Dark background — opaque so the viewer stays dark even when the
+            // app runs in light theme (intentional, to not bias color perception).
             // A tap in this dark area (outside the image/controls) closes the viewer,
             // mirroring the Escape shortcut. Image and buttons sit above and consume their own taps.
-            Color.black.opacity(0.7)
+            Color(red: 0.05, green: 0.05, blue: 0.055)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -303,6 +304,9 @@ struct PhotoViewerView: View {
                 clearColorLabelAction: { viewModel.clearColorLabel() }
             )
         )
+        // The viewer is always dark regardless of the app theme, so the
+        // dynamic fp* colors used inside resolve to their dark variants.
+        .environment(\.colorScheme, .dark)
     }
     
     // MARK: - Helper Methods
@@ -679,12 +683,13 @@ struct TaggingBar: View {
                     )
                     .shadow(color: .black.opacity(0.4), radius: photo.colorLabel == label ? 2 : 1, x: 0, y: photo.colorLabel == label ? 2 : 1)
                 
-                Text("\(6 + index)")
+                // Purple has no keyboard shortcut (6-9 map to red-blue, 0 clears)
+                Text(index < 4 ? "\(6 + index)" : " ")
                     .font(.system(size: 9.5, design: .monospaced))
                     .foregroundStyle(Color.fpTextSecondary.opacity(0.7))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
-                    .background(Color.white.opacity(0.06))
+                    .background(index < 4 ? Color.white.opacity(0.06) : Color.clear)
                     .cornerRadius(3)
             }
             .padding(.horizontal, 5)

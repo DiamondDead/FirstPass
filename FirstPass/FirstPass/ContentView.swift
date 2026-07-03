@@ -6,15 +6,63 @@
 //
 
 import SwiftUI
+import AppKit
 
 // MARK: - Color Constants
 
 extension Color {
-    static let fpBackground = Color(red: 0.08, green: 0.08, blue: 0.09) // #141417 (slightly lighter)
-    static let fpContent = Color(red: 0.14, green: 0.14, blue: 0.15) // #242426 (slightly lighter)
+    /// Dynamic color that resolves against the effective appearance of the
+    /// view hierarchy — so the viewer can stay dark (via a forced dark
+    /// colorScheme) while the rest of the app follows the selected theme.
+    init(light: NSColor, dark: NSColor) {
+        self.init(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+        })
+    }
+
+    // Main surfaces
+    static let fpBackground = Color(
+        light: NSColor(srgbRed: 0.92, green: 0.92, blue: 0.93, alpha: 1),
+        dark: NSColor(srgbRed: 0.08, green: 0.08, blue: 0.09, alpha: 1) // #141417
+    )
+    static let fpContent = Color(
+        light: NSColor(srgbRed: 0.97, green: 0.97, blue: 0.975, alpha: 1),
+        dark: NSColor(srgbRed: 0.14, green: 0.14, blue: 0.15, alpha: 1) // #242426
+    )
+    // Accent is identical in both themes
     static let fpAccent = Color(red: 1.0, green: 0.624, blue: 0.039) // #ff9f0a
-    static let fpText = Color(red: 0.92, green: 0.92, blue: 0.92) // rgba(255,255,255,0.92)
-    static let fpTextSecondary = Color(red: 0.55, green: 0.55, blue: 0.55) // rgba(255,255,255,0.55)
+
+    // Text
+    static let fpText = Color(
+        light: NSColor(srgbRed: 0.13, green: 0.13, blue: 0.14, alpha: 1),
+        dark: NSColor(srgbRed: 0.92, green: 0.92, blue: 0.92, alpha: 1)
+    )
+    static let fpTextSecondary = Color(
+        light: NSColor(srgbRed: 0.44, green: 0.44, blue: 0.46, alpha: 1),
+        dark: NSColor(srgbRed: 0.55, green: 0.55, blue: 0.55, alpha: 1)
+    )
+
+    // Decorations (hairlines, chips, insets, floating panels)
+    static let fpBorder = Color(
+        light: NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.10),
+        dark: NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.07)
+    )
+    static let fpChipBackground = Color(
+        light: NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.05),
+        dark: NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.04)
+    )
+    static let fpControlActive = Color(
+        light: NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 1),
+        dark: NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.12)
+    )
+    static let fpInset = Color(
+        light: NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.07),
+        dark: NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.30)
+    )
+    static let fpPanel = Color(
+        light: NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.92),
+        dark: NSColor(srgbRed: 0.11, green: 0.11, blue: 0.118, alpha: 0.85)
+    )
 }
 
 struct ContentView: View {

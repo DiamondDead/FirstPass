@@ -51,7 +51,7 @@ struct LeftSideBar: View {
             .padding()
             
             Divider()
-                .background(Color.white.opacity(0.06))
+                .background(Color.fpBorder)
             
             // Folder tree
             if let errorMessage = viewModel.errorMessage {

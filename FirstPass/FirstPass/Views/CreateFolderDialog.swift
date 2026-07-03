@@ -40,11 +40,11 @@ struct CreateFolderDialog: View {
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.3))
+                        .background(Color.fpInset)
                         .cornerRadius(6)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                                .stroke(Color.fpBorder, lineWidth: 0.5)
                         )
                         .foregroundStyle(Color.fpText)
                 }
@@ -74,7 +74,7 @@ struct CreateFolderDialog: View {
                 .foregroundStyle(Color.fpTextSecondary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(Color.white.opacity(0.04))
+                .background(Color.fpChipBackground)
                 .cornerRadius(6)
                 
                 Button("Créer") {
@@ -97,7 +97,7 @@ struct CreateFolderDialog: View {
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                .stroke(Color.fpBorder, lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
         .onAppear {

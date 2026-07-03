@@ -50,11 +50,11 @@ struct FilterBar: View {
                 }
             }
             .padding(2)
-            .background(Color.black.opacity(0.3))
+            .background(Color.fpInset)
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                    .stroke(Color.fpBorder, lineWidth: 0.5)
             )
             
             Divider()
@@ -113,7 +113,7 @@ struct FilterBar: View {
         .background(Color.fpContent.opacity(0.6))
         .overlay(
             Rectangle()
-                .fill(Color.white.opacity(0.06))
+                .fill(Color.fpBorder)
                 .frame(height: 0.5),
             alignment: .bottom
         )
@@ -164,7 +164,7 @@ struct FlagFilterButton: View {
                 .foregroundStyle(isActive ? Color.fpText : Color.fpTextSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
-                .background(isActive ? Color.white.opacity(0.12) : Color.clear)
+                .background(isActive ? Color.fpControlActive : Color.clear)
                 .cornerRadius(6)
         }
         .buttonStyle(.plain)
@@ -188,18 +188,18 @@ struct StarFilterChip: View {
                 }) {
                     Image(systemName: star <= minStars ? "star.fill" : "star")
                         .font(.system(size: 11))
-                        .foregroundStyle(star <= minStars ? Color.fpAccent : Color.white.opacity(0.28))
+                        .foregroundStyle(star <= minStars ? Color.fpAccent : Color.fpTextSecondary.opacity(0.55))
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(minStars > 0 ? Color.fpAccent.opacity(0.16) : Color.white.opacity(0.04))
+        .background(minStars > 0 ? Color.fpAccent.opacity(0.16) : Color.fpChipBackground)
         .cornerRadius(999)
         .overlay(
             RoundedRectangle(cornerRadius: 999)
-                .stroke(minStars > 0 ? Color.fpAccent.opacity(0.4) : Color.white.opacity(0.08), lineWidth: 0.5)
+                .stroke(minStars > 0 ? Color.fpAccent.opacity(0.4) : Color.fpBorder, lineWidth: 0.5)
         )
     }
 }
@@ -227,7 +227,7 @@ struct ColorLabelChips: View {
                         .opacity(isSelected ? 1.0 : 0.35)
                         .overlay(
                             Circle()
-                                .stroke(Color.white.opacity(0.85), lineWidth: isSelected ? 1.5 : 0)
+                                .stroke(Color.fpText.opacity(0.85), lineWidth: isSelected ? 1.5 : 0)
                         )
                 }
                 .buttonStyle(.plain)
@@ -235,11 +235,11 @@ struct ColorLabelChips: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
-        .background(Color.white.opacity(0.04))
+        .background(Color.fpChipBackground)
         .cornerRadius(999)
         .overlay(
             RoundedRectangle(cornerRadius: 999)
-                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                .stroke(Color.fpBorder, lineWidth: 0.5)
         )
     }
 }

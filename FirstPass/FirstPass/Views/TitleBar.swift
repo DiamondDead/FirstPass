@@ -44,7 +44,7 @@ struct TitleBar: View {
         .background(Color.fpContent)
         .overlay(
             Rectangle()
-                .fill(Color.white.opacity(0.06))
+                .fill(Color.fpBorder)
                 .frame(height: 0.5),
             alignment: .bottom
         )

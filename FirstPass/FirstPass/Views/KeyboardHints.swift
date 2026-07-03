@@ -56,7 +56,7 @@ struct KeyboardHints: View {
                         .foregroundStyle(Color.fpTextSecondary.opacity(0.85))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
-                        .background(Color.white.opacity(0.08))
+                        .background(Color.fpChipBackground)
                         .cornerRadius(3)
                 }
                 .padding(.vertical, 3)
@@ -64,11 +64,11 @@ struct KeyboardHints: View {
         }
         .padding(12)
         .padding(.horizontal, 14)
-        .background(Color(red: 0.11, green: 0.11, blue: 0.118).opacity(0.85))
+        .background(Color.fpPanel)
         .cornerRadius(10)
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                .stroke(Color.fpBorder, lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: 4)
         .frame(minWidth: 220)
@@ -87,11 +87,11 @@ struct KeyboardHints: View {
             .foregroundStyle(Color.fpTextSecondary.opacity(0.7))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Color(red: 0.11, green: 0.11, blue: 0.118).opacity(0.85))
+            .background(Color.fpPanel)
             .cornerRadius(999)
             .overlay(
                 RoundedRectangle(cornerRadius: 999)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                    .stroke(Color.fpBorder, lineWidth: 0.5)
             )
         }
         .buttonStyle(.plain)
