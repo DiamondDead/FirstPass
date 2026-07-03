@@ -32,6 +32,8 @@ final class PhotoGridVM {
     var draggingPhotoURLs: [URL] = [] // URLs of photos currently dragged to a sidebar folder
     var isLoading: Bool = false
     var errorMessage: String?
+    // Result message of the last picks export (shown as an alert)
+    var exportMessage: String?
     var gridColumns: Int = 4 // Default, will be updated by view
     
     // Filter state
@@ -431,6 +433,75 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Cleared color label for: \(photo.fileName)")
     }
     
+    /// Exports all Pick-flagged photos (and their XMP sidecars) by copying
+    /// them into a folder chosen by the user. Copies run in the background;
+    /// the result is surfaced through `exportMessage`.
+    func exportPicks() {
+        let picks = photos.filter { $0.flag == .pick }
+        guard !picks.isEmpty else {
+            debugPrint("[PhotoGridVM] Export: no picks to export")
+            return
+        }
+
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Exporter"
+        panel.message = "Choisissez le dossier de destination pour \(picks.count) photo(s)"
+
+        panel.begin { [weak self] response in
+            guard response == .OK, let destination = panel.url else {
+                debugPrint("[PhotoGridVM] Export cancelled")
+                return
+            }
+            let sources = picks.map { $0.url }
+            Task { [weak self] in
+                let (copied, skipped) = await Self.copyPhotos(sources, to: destination)
+                await MainActor.run {
+                    var message = "\(copied) photo\(copied > 1 ? "s" : "") exportée\(copied > 1 ? "s" : "") vers « \(destination.lastPathComponent) »."
+                    if skipped > 0 {
+                        message += "\n\(skipped) photo(s) ignorée(s) (fichier du même nom déjà présent)."
+                    }
+                    self?.exportMessage = message
+                }
+            }
+        }
+    }
+
+    /// Copies photo files and their XMP sidecars into the destination folder.
+    /// Existing files are never overwritten. Returns (copied, skipped).
+    nonisolated private static func copyPhotos(_ sources: [URL], to destination: URL) async -> (Int, Int) {
+        let fileManager = FileManager.default
+        var copied = 0
+        var skipped = 0
+
+        for source in sources {
+            let target = destination.appendingPathComponent(source.lastPathComponent)
+            if fileManager.fileExists(atPath: target.path) {
+                debugPrint("[PhotoGridVM] Export: skipping \(source.lastPathComponent), already exists")
+                skipped += 1
+                continue
+            }
+            do {
+                try fileManager.copyItem(at: source, to: target)
+                // Copy the XMP sidecar too, if present
+                let xmpSource = XMPSidecar.sidecarURL(for: source)
+                if fileManager.fileExists(atPath: xmpSource.path) {
+                    let xmpTarget = destination.appendingPathComponent(xmpSource.lastPathComponent)
+                    try? fileManager.copyItem(at: xmpSource, to: xmpTarget)
+                }
+                copied += 1
+            } catch {
+                debugPrint("[PhotoGridVM] Export: failed to copy \(source.lastPathComponent): \(error.localizedDescription)")
+                skipped += 1
+            }
+        }
+        debugPrint("[PhotoGridVM] Export complete: \(copied) copied, \(skipped) skipped")
+        return (copied, skipped)
+    }
+
     /// Opens the current photo (viewer) or the selected photos (grid) in the
     /// default external editor associated with the file type.
     func openInExternalEditor() {

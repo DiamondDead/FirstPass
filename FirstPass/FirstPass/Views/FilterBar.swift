@@ -27,6 +27,7 @@ struct FilterBar: View {
     let filteredCount: Int
     let selectedPhotoCount: Int
     let onCreateFolder: () -> Void
+    let onExportPicks: () -> Void
     
     var body: some View {
         HStack(spacing: 16) {
@@ -133,7 +134,32 @@ struct FilterBar: View {
                 )
             }
             .buttonStyle(.plain)
-            
+
+            // Export picks button — copies pick-flagged photos to a folder
+            if pickCount > 0 {
+                Button(action: onExportPicks) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 11))
+                        Text("Exporter les picks")
+                            .font(.system(size: 11.5, weight: .medium))
+                        Text("(\(pickCount))")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(Color.fpTextSecondary.opacity(0.8))
+                    }
+                    .foregroundStyle(Color.fpText)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.fpChipBackground)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.fpBorder, lineWidth: 0.5)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
             Divider()
                 .frame(height: 16)
             
@@ -300,6 +326,9 @@ struct ColorLabelChips: View {
         selectedPhotoCount: 5,
         onCreateFolder: {
             debugPrint("Create folder clicked")
+        },
+        onExportPicks: {
+            debugPrint("Export picks clicked")
         }
     )
     .background(Color.fpBackground)

@@ -52,7 +52,8 @@ struct PhotoGridView: View {
                     unflaggedCount: viewModel.unflaggedCount,
                     filteredCount: viewModel.filteredCount,
                     selectedPhotoCount: selectedPhotoCount,
-                    onCreateFolder: { showCreateFolderDialog = true }
+                    onCreateFolder: { showCreateFolderDialog = true },
+                    onExportPicks: { viewModel.exportPicks() }
                 )
             }
             
@@ -213,6 +214,18 @@ struct PhotoGridView: View {
                     onDismiss: { showCreateFolderDialog = false }
                 )
             }
+        }
+        // Export result feedback
+        .alert(
+            "Export terminé",
+            isPresented: Binding(
+                get: { viewModel.exportMessage != nil },
+                set: { if !$0 { viewModel.exportMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { viewModel.exportMessage = nil }
+        } message: {
+            Text(viewModel.exportMessage ?? "")
         }
         // Surface any folder-creation failure to the user (e.g. duplicate name)
         .alert(

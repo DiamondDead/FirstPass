@@ -10,7 +10,7 @@
 import Foundation
 
 @inlinable
-func debugPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+nonisolated func debugPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
     #if DEBUG
     let output = items.map { String(reflecting: $0) }.joined(separator: separator)
     Swift.print(output, terminator: terminator)
