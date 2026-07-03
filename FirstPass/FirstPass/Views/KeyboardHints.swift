@@ -19,6 +19,7 @@ struct KeyboardHints: View {
         ("0", "Effacer label"),
         ("← →", "Naviguer"),
         ("↵", "Détail / Grille"),
+        ("⌘ ↵", "Éditeur externe"),
         ("Esc", "Retour grille"),
     ]
     

@@ -431,6 +431,25 @@ final class PhotoGridVM {
         debugPrint("[PhotoGridVM] Cleared color label for: \(photo.fileName)")
     }
     
+    /// Opens the current photo (viewer) or the selected photos (grid) in the
+    /// default external editor associated with the file type.
+    func openInExternalEditor() {
+        let targets: [URL]
+        if let selected = selectedPhoto {
+            targets = [selected.url]
+        } else {
+            targets = photos.filter { $0.isSelected }.map { $0.url }
+        }
+        guard !targets.isEmpty else {
+            debugPrint("[PhotoGridVM] Open in external editor: nothing selected")
+            return
+        }
+        debugPrint("[PhotoGridVM] Opening \(targets.count) photo(s) in external editor")
+        for url in targets {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     /// Releases decoded full-quality images except for the current photo and
     /// its immediate neighbors, so long culling sessions don't accumulate
     /// hundreds of full-size decoded images in memory.

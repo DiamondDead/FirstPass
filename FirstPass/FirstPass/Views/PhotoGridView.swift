@@ -177,6 +177,7 @@ struct PhotoGridView: View {
                 cmdUpArrowAction: { viewModel.selectRowAbove() },
                 escapeAction: { viewModel.deselectAll() },
                 cmdAAction: { viewModel.selectAll() },
+                openExternalAction: { viewModel.openInExternalEditor() },
                 isViewingPhoto: viewModel.selectedPhoto != nil,
                 setRatingAction: { viewModel.setRating($0) },
                 setColorLabelAction: { viewModel.setColorLabel($0) },
@@ -414,6 +415,7 @@ struct KeyboardMonitor: NSViewRepresentable {
     let cmdUpArrowAction: () -> Void
     let escapeAction: () -> Void
     let cmdAAction: () -> Void
+    let openExternalAction: () -> Void
     let isViewingPhoto: Bool
     let setRatingAction: ((Int) -> Void)?
     let setColorLabelAction: ((ColorLabel) -> Void)?
@@ -431,6 +433,7 @@ struct KeyboardMonitor: NSViewRepresentable {
         context.coordinator.cmdUpArrowAction = cmdUpArrowAction
         context.coordinator.escapeAction = escapeAction
         context.coordinator.cmdAAction = cmdAAction
+        context.coordinator.openExternalAction = openExternalAction
         context.coordinator.isViewingPhoto = isViewingPhoto
         context.coordinator.setRatingAction = setRatingAction
         context.coordinator.setColorLabelAction = setColorLabelAction
@@ -482,6 +485,9 @@ struct KeyboardMonitor: NSViewRepresentable {
             }
 
             switch event.keyCode {
+            case 36 where isCmdPressed, 76 where isCmdPressed: // Cmd + Return / Enter
+                coordinator.openExternalAction()
+                return nil
             case 123 where isCmdPressed: // Cmd + Left arrow
                 coordinator.cmdLeftArrowAction()
                 return nil
@@ -517,6 +523,7 @@ struct KeyboardMonitor: NSViewRepresentable {
         var cmdUpArrowAction: () -> Void = {}
         var escapeAction: () -> Void = {}
         var cmdAAction: () -> Void = {}
+        var openExternalAction: () -> Void = {}
         var isViewingPhoto: Bool = false
         var setRatingAction: ((Int) -> Void)?
         var setColorLabelAction: ((ColorLabel) -> Void)?
